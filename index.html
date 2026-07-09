@@ -560,7 +560,7 @@ function renderMembers(){
     list.innerHTML='<div class="empty">명단을 불러오는 중이거나 아직 등록되지 않았습니다.<br>잠시 후 새로고침해 보시고, 계속 비어 있으면 관리자에게 문의해 주세요.</div>';
     return;
   }
-  let pool=q?MEMBERS.filter(s=>s.name.includes(q)||(s.duty||'').includes(q)):MEMBERS.filter(s=>s.tab===curTab);
+  let pool=q?MEMBERS.filter(s=>s.name.includes(q)):MEMBERS.filter(s=>s.tab===curTab);
   if(!pool.length){ list.innerHTML='<div class="empty">검색 결과가 없어요 🍃</div>'; return; }
   let lastLoc=null;
   pool.forEach(s=>{
@@ -568,7 +568,7 @@ function renderMembers(){
       const lb=document.createElement('div'); lb.className='room-label'; lb.textContent=s.loc;
       list.appendChild(lb); }
     const b=document.createElement('button'); b.className='mem';
-    b.innerHTML=`<span><span class="nm">${s.name}</span><span class="duty">${s.duty||''}</span></span>
+    b.innerHTML=`<span><span class="nm">${s.name}</span><span class="duty">선생님</span></span>
                  <span class="loc">내선 ${s.ext||'-'}</span>`;
     b.onclick=()=>selectMember(s);
     list.appendChild(b);
@@ -582,7 +582,7 @@ function selectMember(s){
   }else if(s.phone){
     showStep('ls-phone');
     document.getElementById('phoneName').textContent=s.name;
-    document.getElementById('meCardPhone').innerHTML=`<b>${s.name}</b> · ${s.duty||''}<br><small>${s.loc}</small>`;
+    document.getElementById('meCardPhone').innerHTML=`<b>${s.name} 선생님</b><br><small>${s.loc}</small>`;
     focusFirst('phoneBoxes');
   }else{
     showStep('ls-setpin'); focusFirst('setpinBoxes');
