@@ -222,6 +222,14 @@ button{font-family:inherit;cursor:pointer;border:none}
 .ticket .num{font-size:.78rem;color:var(--mocha);letter-spacing:.12em}
 .ticket-body{border-top:1.5px dashed var(--line);margin-top:16px;padding-top:14px;text-align:left;font-size:.88rem}
 
+/* ═══ 가로 스크롤 힌트: 더 있으면 오른쪽이 흐려짐 ═══ */
+.tabs,.menu-strip{
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
+  padding-right:20px;
+}
+.tabs.at-end,.menu-strip.at-end{-webkit-mask-image:none;mask-image:none;padding-right:2px}
+
 /* ═══ 데스크톱 화면 (900px 이상) ═══ */
 @media(min-width:900px){
   body{background:
@@ -535,6 +543,7 @@ async function init(){
   renderMenu();
   document.getElementById('menuStrip').innerHTML=
     MENUS.map(m=>`<span class="ms-chip">${m.name}<b>${m.price.toLocaleString()}원</b></span>`).join('');
+  if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
   tick(); setInterval(tick,30000);
   const cs=closedState();
   if(cs.closed){
@@ -587,6 +596,7 @@ function renderTabs(){
       b.classList.add('on'); renderMembers(); };
     tabBar.appendChild(b);
   });
+  if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
 }
 renderTabs();
 document.getElementById('searchInput').addEventListener('input',renderMembers);

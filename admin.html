@@ -181,6 +181,14 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 .pm-qty small{font-size:9pt;color:#5a6e62;margin-left:2px}
 .pm-checks{font-size:11pt;color:#4a5a50;letter-spacing:2px;margin-top:4px;word-break:break-all}
 
+/* ═══ 가로 스크롤 힌트 ═══ */
+.tabs{
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
+  padding-right:26px;
+}
+.tabs.at-end{-webkit-mask-image:none;mask-image:none}
+
 /* ═══ 데스크톱 화면 (1100px 이상) ═══ */
 @media(min-width:1100px){
   .wrap{max-width:1100px}
@@ -1117,6 +1125,15 @@ async function handleRosterUpload(input){
     alert('업로드 처리 중 오류가 발생했습니다. 파일이 엑셀(xlsx) 형식인지 확인해 주세요.');
   }
 }
+
+/* 가로 스크롤 힌트 */
+(function(){
+  const el=document.getElementById('tabBar');
+  const upd=()=>el.classList.toggle('at-end', el.scrollLeft+el.clientWidth>=el.scrollWidth-6);
+  el.addEventListener('scroll',upd,{passive:true});
+  window.addEventListener('resize',upd);
+  upd();
+})();
 
 /* Excel 내보내기: 추후 구현 예정 */
 function exportExcel(){ alert('Excel 내보내기는 다음 단계에서 추가할 예정입니다. 우선 취합표 인쇄(PDF)를 이용해 주세요.'); }
