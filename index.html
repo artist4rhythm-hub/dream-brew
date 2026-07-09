@@ -359,7 +359,7 @@ const DEFAULT_MENUS=[
 ];
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',menus:DEFAULT_MENUS};
 let MENUS=DEFAULT_MENUS;
-const TABS=['통합교육실','본관·행정','제1연구실','제2연구실','제3연구실','제4연구실','제5연구실','기타'];
+let TABS=['본관·행정','제1연구실','제2연구실','제3연구실','제4연구실','제5연구실','기타','통합교육실'];
 
 let MEMBERS=[];       // Firestore members
 let user=null, couponUse=0, seat=null, submitting=false;
@@ -404,6 +404,7 @@ async function init(){
     const snap=await db.collection('members').orderBy('idx').get();
     MEMBERS=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){ console.error('members',e); }
+  renderTabs();
   renderMembers();
 }
 
@@ -421,14 +422,26 @@ function go(id){
 /* ═════════ 1. 로그인 ═════════ */
 const tabBar=document.getElementById('tabBar');
 let curTab=TABS[0];
-TABS.forEach(t=>{
-  const b=document.createElement('button');
-  b.className='tab'+(t===curTab?' on':''); b.textContent=t;
-  b.onclick=()=>{ curTab=t; document.getElementById('searchInput').value='';
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); renderMembers(); };
-  tabBar.appendChild(b);
-});
+function renderTabs(){
+  if(MEMBERS.length){
+    const seen=[];
+    MEMBERS.forEach(m=>{ if(m.tab&&!seen.includes(m.tab)) seen.push(m.tab); });
+    const gi=seen.indexOf('통합교육실');
+    if(gi>-1){ seen.splice(gi,1); seen.push('통합교육실'); }
+    if(seen.length) TABS=seen;
+  }
+  if(!TABS.includes(curTab)) curTab=TABS[0];
+  tabBar.innerHTML='';
+  TABS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='tab'+(t===curTab?' on':''); b.textContent=t;
+    b.onclick=()=>{ curTab=t; document.getElementById('searchInput').value='';
+      tabBar.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on'); renderMembers(); };
+    tabBar.appendChild(b);
+  });
+}
+renderTabs();
 document.getElementById('searchInput').addEventListener('input',renderMembers);
 
 function renderMembers(){
@@ -613,7 +626,6 @@ function toggleLocList(){
 function renderPay(){
   const pay=rawTotal()-discount();
   document.getElementById('paidCheck').checked=false;
-  document.getElementById('payAmount').textContent=pay.toLocaleString()+'원';
   const zero=pay===0;
   document.querySelector('.account-card').style.display=zero?'none':'block';
   document.querySelector('.pay-check').style.display=zero?'none':'flex';

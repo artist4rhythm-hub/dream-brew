@@ -202,6 +202,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
     <button class="tab" data-p="p-make">☕ 제조 준비</button>
     <button class="tab" data-p="p-route">🚶 배달 동선</button>
     <button class="tab" data-p="p-coupon">🎟 쿠폰 관리</button>
+    <button class="tab" data-p="p-members">👥 명단 관리</button>
     <button class="tab" data-p="p-set">⚙️ 설정</button>
     <button class="tab super-only" data-p="p-super">👑 시스템 관리</button>
   </nav>
@@ -284,6 +285,37 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
       <button class="btn" style="width:100%" onclick="saveSettings()">설정 저장</button>
     </section>
 
+
+    <!-- ═══ 명단 관리 ═══ -->
+    <section class="panel" id="p-members">
+      <div class="set-group">
+        <h4>📄 엑셀 양식으로 명단 일괄 등록</h4>
+        <p class="hint" style="margin-bottom:10px">
+          ① 양식을 내려받으면 <b>현재 등록된 명단이 채워져</b> 있습니다 →
+          ② 엑셀에서 추가·수정·삭제 →
+          ③ 업로드하면 한 번에 적용됩니다. (기존 선생님의 쿠폰·PIN은 유지)
+        </p>
+        <div class="toolbar">
+          <button class="btn sm" onclick="downloadTemplate()">📥 엑셀 양식 다운로드</button>
+          <label class="btn line sm" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">
+            📤 엑셀 업로드 적용
+            <input type="file" id="rosterFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleRosterUpload(this)">
+          </label>
+        </div>
+        <p class="hint">양식 열 구성: 이름(필수) · 담당 · 배달위치 · 구역 · 내선 · 연락처뒤4자리<br>
+        시트의 행 순서가 주문 페이지의 표시 순서가 되며, ‘구역’이 선택 탭으로 자동 생성됩니다.</p>
+        <p class="hint" id="rosterStatus" style="color:var(--sage);font-weight:700"></p>
+      </div>
+      <div class="set-group">
+        <h4>🔑 선생님 PIN 초기화</h4>
+        <p class="hint" style="margin-bottom:8px">PIN을 잊은 선생님의 이름을 입력하면 초기화됩니다. 다음 주문 때 새 PIN을 설정하게 됩니다.</p>
+        <div class="set-row">
+          <input type="text" id="pinResetName" placeholder="선생님 이름" style="flex:1">
+          <button class="btn line sm" onclick="resetMemberPin()">PIN 초기화</button>
+        </div>
+      </div>
+    </section>
+
     <!-- ═══ 수퍼 관리자: 시스템 관리 ═══ -->
     <section class="panel" id="p-super">
       <div class="set-group">
@@ -304,14 +336,6 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint" style="margin-bottom:8px">최초 1회, 좌석 배치도 기준 명단을 등록합니다. 이미 있는 선생님은 건너뜁니다.</p>
         <button class="btn sm" id="seedBtn" onclick="seedMembers()">📥 교직원 명단 등록 (105명)</button>
       </div>
-      <div class="set-group">
-        <h4>🔑 선생님 PIN 초기화</h4>
-        <p class="hint" style="margin-bottom:8px">PIN을 잊은 선생님의 이름을 입력하면 초기화됩니다. 다음 주문 때 새 PIN을 설정하게 됩니다.</p>
-        <div class="set-row">
-          <input type="text" id="pinResetName" placeholder="선생님 이름" style="flex:1">
-          <button class="btn line sm" onclick="resetMemberPin()">PIN 초기화</button>
-        </div>
-      </div>
     </section>
   </main>
 </div>
@@ -322,6 +346,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 /* ═════════ Firebase 초기화 ═════════ */
 const firebaseConfig = {
@@ -929,6 +954,63 @@ function printSheet(){
       <tr class="total"><td colspan="2">총 제조량</td><td>${cups}잔</td></tr>
     </table>`;
   window.print();
+}
+
+
+/* ═════════ 명단 엑셀 일괄 등록 ═════════ */
+const ROSTER_HEADERS=['이름','담당','배달위치','구역','내선','연락처뒤4자리'];
+function downloadTemplate(){
+  const rows=MEMBERS.length
+    ? MEMBERS.map(m=>({'이름':m.name,'담당':m.duty||'','배달위치':m.loc||'','구역':m.tab||'','내선':m.ext||'','연락처뒤4자리':m.phone||''}))
+    : [{'이름':'홍길동','담당':'예시 담당','배달위치':'제1연구실(2층 서편)','구역':'제1연구실','내선':'123','연락처뒤4자리':'1234'}];
+  const ws=XLSX.utils.json_to_sheet(rows,{header:ROSTER_HEADERS});
+  ws['!cols']=[{wch:10},{wch:20},{wch:24},{wch:12},{wch:8},{wch:14}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'명단');
+  XLSX.writeFile(wb,'꿈Brew_교직원명단.xlsx');
+}
+async function handleRosterUpload(input){
+  const file=input.files[0];
+  input.value='';
+  if(!file) return;
+  const status=document.getElementById('rosterStatus');
+  status.textContent='파일을 읽는 중…';
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{defval:''});
+    const rows=raw.map(r=>({
+      name:String(r['이름']||'').trim(),
+      duty:String(r['담당']||'').trim(),
+      loc:String(r['배달위치']||'').trim(),
+      tab:String(r['구역']||'').trim()||'기타',
+      ext:String(r['내선']||'').trim(),
+      phone:String(r['연락처뒤4자리']||'').replace(/\D/g,'').slice(-4)
+    })).filter(r=>r.name);
+    if(!rows.length){ status.textContent=''; alert('시트에서 명단을 찾지 못했습니다. 양식의 열 이름(이름/담당/배달위치/구역/내선)을 확인해 주세요.'); return; }
+    const dup=rows.map(r=>r.name).filter((n,i,arr)=>arr.indexOf(n)!==i);
+    if(dup.length){ status.textContent=''; alert('이름이 중복된 행이 있습니다: '+[...new Set(dup)].join(', ')+'\n동명이인은 이름 뒤에 구분자를 붙여 주세요. (예: 김민수A)'); return; }
+    if(!confirm(`총 ${rows.length}명을 명단에 적용할까요?\n(기존 선생님의 쿠폰·PIN은 그대로 유지됩니다)`)) { status.textContent=''; return; }
+    const existing=new Set(MEMBERS.map(m=>m.id));
+    const batch=db.batch();
+    rows.forEach((r,i)=>{
+      batch.set(db.collection('members').doc(r.name),
+        {name:r.name,duty:r.duty,loc:r.loc,tab:r.tab,ext:r.ext,phone:r.phone,idx:i},{merge:true});
+      existing.delete(r.name);
+    });
+    let removed=0;
+    if(existing.size>0 && confirm(`시트에 없는 기존 선생님 ${existing.size}명이 있습니다.\n(${[...existing].slice(0,8).join(', ')}${existing.size>8?' 외':''})\n명단에서 삭제할까요?\n[취소]를 누르면 그대로 둡니다.`)){
+      existing.forEach(id=>{ batch.delete(db.collection('members').doc(id)); removed++; });
+    }
+    await batch.commit();
+    status.textContent=`✓ 적용 완료 — ${rows.length}명 등록/수정${removed?`, ${removed}명 삭제`:''}`;
+    loadMembers();
+  }catch(e){
+    console.error(e);
+    status.textContent='';
+    alert('업로드 처리 중 오류가 발생했습니다. 파일이 엑셀(xlsx) 형식인지 확인해 주세요.');
+  }
 }
 
 /* Excel 내보내기: 추후 구현 예정 */
