@@ -50,6 +50,15 @@ header{padding:20px 20px 14px;text-align:center;border-bottom:1px solid var(--li
 .deadline-chip.closed{background:#F6ECE9;color:#B4533C;border-color:#E7D2CB}
 .closed-card{background:#F6ECE9;border:1px solid #E7D2CB;border-radius:12px;padding:18px 16px;
   text-align:center;color:#B4533C;font-size:.9rem;margin-bottom:18px;line-height:1.7}
+.myorders-btn{background:var(--paper);border:1px solid var(--line);border-radius:999px;
+  padding:5px 12px;font-size:.76rem;color:var(--brew);font-weight:700;white-space:nowrap}
+.my-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--paper)}
+.my-week{font-size:.74rem;color:var(--gold);font-weight:700}
+.my-items{font-size:.86rem;margin:6px 0;line-height:1.5}
+.my-pay{font-weight:700;color:var(--gold);font-size:.9rem}
+.my-status{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.st{font-size:.72rem;border-radius:6px;padding:3px 9px;background:#F0EBE0;color:#B0A38E}
+.st.on{background:var(--sage-soft);color:var(--sage);font-weight:700}
 
 main{flex:1;padding:20px 20px 120px}
 .screen{display:none}
@@ -239,7 +248,10 @@ button{font-family:inherit;cursor:pointer;border:none}
     <section class="screen" id="scr-menu">
       <div class="hello-bar">
         <span id="helloText"></span>
-        <span class="coupon-badge" id="couponBadge"></span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span class="coupon-badge" id="couponBadge"></span>
+          <button class="myorders-btn" onclick="openMyOrders()">📋 내 주문</button>
+        </span>
       </div>
       <h2 class="step-title">오늘의 메뉴</h2>
       <p class="step-desc">이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다.</p>
@@ -324,7 +336,15 @@ button{font-family:inherit;cursor:pointer;border:none}
         <div class="ticket-body" id="ticketBody"></div>
       </div>
       <p class="hint" style="margin-top:16px">금요일 2~3교시, 학생들이 직접 만들어 자리로 배달해 드립니다 💛</p>
+      <button class="btn" style="margin-top:14px" onclick="openMyOrders()">📋 내 주문 현황 보기</button>
       <button class="btn ghost" onclick="location.reload()">처음으로</button>
+    </section>
+    <!-- ═══ 7. 내 주문 현황 ═══ -->
+    <section class="screen" id="scr-myorders">
+      <h2 class="step-title">내 주문 현황</h2>
+      <p class="step-desc">최근 주문 내역과 진행 상태입니다.</p>
+      <div id="myOrderList"><p class="hint">불러오는 중…</p></div>
+      <button class="btn ghost" onclick="go('scr-menu')">← 메뉴로 돌아가기</button>
     </section>
   </main>
 
@@ -704,7 +724,7 @@ async function submitOrder(){
     couponUsed:couponUse,
     selfPaid: pay===0 ? true : document.getElementById('paidCheck').checked,
     payByCoupon: pay===0,
-    confirmed:false,
+    confirmed:false, made:false, delivered:false,
     createdAt:firebase.firestore.FieldValue.serverTimestamp()
   };
   try{
@@ -741,6 +761,44 @@ function showTicket(order){
      <div class="order-line"><span>결제 금액</span><b style="color:var(--gold)">${order.pay.toLocaleString()}원</b></div>`;
   go('scr-done');
   document.getElementById('cartBar').classList.remove('show');
+}
+
+/* ═════════ 7. 내 주문 현황 ═════════ */
+async function openMyOrders(){
+  go('scr-myorders');
+  const box=document.getElementById('myOrderList');
+  box.innerHTML='<p class="hint">불러오는 중…</p>';
+  try{
+    const snap=await db.collection('orders').where('memberId','==',user.id).get();
+    let arr=snap.docs.map(d=>({id:d.id,...d.data()}));
+    arr.sort((a,b)=> b.week===a.week ? (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0) : (b.week>a.week?1:-1));
+    if(!arr.length){ box.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">아직 주문 내역이 없습니다.<br>이번 주 메뉴를 담아보세요 ☕</p>'; return; }
+    box.innerHTML='';
+    arr.slice(0,20).forEach(o=>{
+      const [y,m,d]=o.week.split('-').map(Number);
+      const wkD=new Date(y,m-1,d);
+      const items=(o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()})×${i.q}`).join(', ');
+      const payChip = o.payByCoupon ? '<span class="st on">쿠폰 전액 결제 ✓</span>'
+        : (o.confirmed ? '<span class="st on">입금 확인 ✓</span>' : '<span class="st">입금 확인 대기</span>');
+      box.insertAdjacentHTML('beforeend',`
+        <div class="my-card">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <span class="my-week">${m}/${d}(${DAYNAMES[wkD.getDay()]}) 마감분</span>
+            <span class="my-pay">${o.pay.toLocaleString()}원${o.couponUsed?` · 쿠폰 ${o.couponUsed}잔`:''}</span>
+          </div>
+          <div class="my-items">${items} · 총 ${o.cups}잔<br><small style="color:var(--mocha)">📍 ${o.loc}</small></div>
+          <div class="my-status">
+            <span class="st on">주문 접수 ✓</span>
+            ${payChip}
+            <span class="st ${o.made?'on':''}">${o.made?'제조 완료 ✓':'제조 전'}</span>
+            <span class="st ${o.delivered?'on':''}">${o.delivered?'배달 완료 🎉':'배달 전'}</span>
+          </div>
+        </div>`);
+    });
+  }catch(e){
+    console.error(e);
+    box.innerHTML='<p class="hint">주문 내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
+  }
 }
 
 init();

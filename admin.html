@@ -81,6 +81,13 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .confirm-check{display:flex;align-items:center;gap:8px;font-size:.84rem;cursor:pointer;font-weight:500}
 .confirm-check input{width:19px;height:19px;accent-color:var(--sage)}
 .confirm-check.done{color:var(--sage);font-weight:700}
+.oc-checks{display:flex;gap:14px;flex-wrap:wrap}
+.done-details{margin-top:18px;border:1px solid var(--line);border-radius:12px;background:#F5F0E6}
+.done-details summary{padding:12px 16px;font-size:.9rem;font-weight:700;color:var(--sage);cursor:pointer;list-style:none}
+.done-details summary::before{content:'▸ ';}
+.done-details[open] summary::before{content:'▾ ';}
+.done-details .inner{padding:0 12px 12px}
+.order-card.done-card{opacity:.75;background:#FBF9F3}
 
 /* 제조 집계 */
 .make-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -595,18 +602,26 @@ function deadlinePair(){
 }
 const wk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const wkLabel=d=>`${d.getMonth()+1}/${d.getDate()}(${DAYNAMES[d.getDay()]}) 마감분`;
-function setupWeeks(){
+async function setupWeeks(){
   const {prev,next,now}=deadlinePair();
+  const weeks=new Set([wk(prev),wk(next)]);
+  try{
+    const snap=await db.collection('orders').orderBy('week','desc').get();
+    snap.docs.forEach(d=>{ const w=d.data().week; if(w) weeks.add(w); });
+  }catch(e){ console.error(e); }
+  const arr=[...weeks].sort().reverse();
   const sel=document.getElementById('weekSel');
-  sel.innerHTML=`<option value="${wk(prev)}">${wkLabel(prev)}</option>
-                 <option value="${wk(next)}">${wkLabel(next)} (접수 중)</option>`;
-  // 마감 후 36시간 이내(취합·제조 기간)면 지난 마감분을 기본으로
+  sel.innerHTML=arr.map(w=>{
+    const [y,m,d]=w.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    return `<option value="${w}">${m}/${d}(${DAYNAMES[dt.getDay()]}) 마감분${w===wk(next)?' · 접수 중':''}</option>`;
+  }).join('');
   const def=(now-prev)<36*36e5 ? wk(prev) : wk(next);
-  sel.value=def;
+  sel.value=arr.includes(def)?def:arr[0];
   sel.onchange=()=>subscribeOrders(sel.value);
   document.getElementById('weekChip').textContent=
     `${next.getMonth()+1}/${next.getDate()}(${DAYNAMES[next.getDay()]}) ${SETTINGS.deadlineTime} 마감`;
-  subscribeOrders(def);
+  subscribeOrders(sel.value);
 }
 function subscribeOrders(week){
   curWeek=week;
@@ -630,41 +645,57 @@ document.querySelectorAll('.tab').forEach(t=>{
 
 /* ═════════ 주문 취합 ═════════ */
 function itemsText(o){ return (o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()})×${i.q}`).join(', '); }
+function orderCardHTML(o,doneStyle){
+  const payBadge = o.payByCoupon
+    ? `<span class="badge coupon">쿠폰 전액 결제</span>`
+    : o.selfPaid ? `<span class="badge self">본인 입금 신고 ✓</span>`
+                 : `<span class="badge none">입금 신고 없음</span>`;
+  return `
+    <div class="order-card${doneStyle?' done-card':''}">
+      <div class="oc-top">
+        <span class="oc-name">${o.name}<small>내선 ${o.ext||'-'}</small></span>
+        <span class="oc-amt">${o.pay.toLocaleString()}원${o.couponUsed?` <span class="badge coupon">쿠폰 ${o.couponUsed}잔</span>`:''}</span>
+      </div>
+      <div class="oc-items">${itemsText(o)} · 총 ${o.cups}잔</div>
+      <div class="oc-loc">📍 ${o.loc}</div>
+      <div class="oc-foot">
+        ${payBadge}
+        <span class="oc-checks">
+          <label class="confirm-check ${o.confirmed?'done':''}">
+            <input type="checkbox" ${o.confirmed?'checked':''} onchange="toggleField('${o.id}','confirmed',this)"> 입금
+          </label>
+          <label class="confirm-check ${o.made?'done':''}">
+            <input type="checkbox" ${o.made?'checked':''} onchange="toggleField('${o.id}','made',this)"> 제조
+          </label>
+          <label class="confirm-check ${o.delivered?'done':''}">
+            <input type="checkbox" ${o.delivered?'checked':''} onchange="toggleField('${o.id}','delivered',this)"> 배달
+          </label>
+        </span>
+      </div>
+    </div>`;
+}
 function renderOrders(){
   const list=document.getElementById('orderList'); list.innerHTML='';
   let cups=0,sum=0,unpaid=0;
+  ORDERS.forEach(o=>{ cups+=o.cups; sum+=o.pay; if(!o.confirmed)unpaid++; });
+  const active=ORDERS.filter(o=>!o.delivered);
+  const done=ORDERS.filter(o=>o.delivered);
   if(!ORDERS.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">이 주차에는 아직 주문이 없습니다.</p>';
-  ORDERS.forEach(o=>{
-    cups+=o.cups; sum+=o.pay;
-    if(!o.confirmed)unpaid++;
-    const payBadge = o.payByCoupon
-      ? `<span class="badge coupon">쿠폰 전액 결제</span>`
-      : o.selfPaid ? `<span class="badge self">본인 입금 신고 ✓</span>`
-                   : `<span class="badge none">입금 신고 없음</span>`;
+  active.forEach(o=>list.insertAdjacentHTML('beforeend',orderCardHTML(o,false)));
+  if(done.length){
     list.insertAdjacentHTML('beforeend',`
-      <div class="order-card">
-        <div class="oc-top">
-          <span class="oc-name">${o.name}<small>내선 ${o.ext||'-'}</small></span>
-          <span class="oc-amt">${o.pay.toLocaleString()}원${o.couponUsed?` <span class="badge coupon">쿠폰 ${o.couponUsed}잔</span>`:''}</span>
-        </div>
-        <div class="oc-items">${itemsText(o)} · 총 ${o.cups}잔</div>
-        <div class="oc-loc">📍 ${o.loc}</div>
-        <div class="oc-foot">
-          ${payBadge}
-          <label class="confirm-check ${o.confirmed?'done':''}">
-            <input type="checkbox" ${o.confirmed?'checked':''} onchange="toggleConfirm('${o.id}',this)">
-            입금 확인 완료
-          </label>
-        </div>
-      </div>`);
-  });
+      <details class="done-details">
+        <summary>✅ 배달 완료된 주문 ${done.length}건</summary>
+        <div class="inner">${done.map(o=>orderCardHTML(o,true)).join('')}</div>
+      </details>`);
+  }
   document.getElementById('stOrders').textContent=ORDERS.length;
   document.getElementById('stCups').textContent=cups;
   document.getElementById('stUnpaid').textContent=unpaid;
   document.getElementById('stSum').textContent=sum.toLocaleString();
 }
-function toggleConfirm(id,el){
-  db.collection('orders').doc(id).update({confirmed:el.checked}).catch(e=>{
+function toggleField(id,field,el){
+  db.collection('orders').doc(id).update({[field]:el.checked}).catch(e=>{
     alert('저장 실패 — 인터넷 연결을 확인해 주세요.'); console.error(e);
   });
 }
