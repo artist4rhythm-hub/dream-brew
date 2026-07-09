@@ -272,6 +272,27 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint">2학기에 요일·시간이 바뀌면 여기서만 수정하면 주문 페이지에 바로 적용됩니다.</p>
       </div>
       <div class="set-group">
+        <h4>⛔ 주문 중지 (방학 · 행사 대비)</h4>
+        <div class="set-row">
+          <label style="min-width:auto;display:flex;align-items:center;gap:8px;color:var(--brew-deep)">
+            <input type="checkbox" id="setPaused" style="width:20px;height:20px;accent-color:var(--hot)">
+            지금 즉시 주문 중지
+          </label>
+        </div>
+        <div class="set-row">
+          <label>중지 기간</label>
+          <input type="date" id="setPauseFrom"> <span style="color:var(--mocha)">~</span>
+          <input type="date" id="setPauseUntil">
+        </div>
+        <div class="set-row">
+          <label>안내 문구</label>
+          <input type="text" id="setPauseMsg" placeholder="예: 여름방학 기간에는 주문을 받지 않습니다">
+        </div>
+        <p class="hint">즉시 중지를 켜거나 기간을 설정하면 주문 페이지가 잠깁니다.
+        기간만 설정한 경우 시작일에 자동으로 닫히고 종료일이 지나면 자동으로 다시 열립니다.
+        모두 비워 두면 항상 열려 있습니다. 저장을 눌러야 적용됩니다.</p>
+      </div>
+      <div class="set-group">
         <h4>💳 입금 계좌</h4>
         <div class="set-row"><label>은행</label><input id="setBank" value="신한"></div>
         <div class="set-row"><label>계좌번호</label><input id="setAcct" value="110-384-767823"></div>
@@ -769,6 +790,10 @@ function fillSettingsUI(){
   document.getElementById('setBank').value=SETTINGS.bank||'';
   document.getElementById('setAcct').value=SETTINGS.acct||'';
   document.getElementById('setHolder').value=SETTINGS.holder||'';
+  document.getElementById('setPaused').checked=!!SETTINGS.paused;
+  document.getElementById('setPauseFrom').value=SETTINGS.pauseFrom||'';
+  document.getElementById('setPauseUntil').value=SETTINGS.pauseUntil||'';
+  document.getElementById('setPauseMsg').value=SETTINGS.pauseMsg||'';
   const box=document.getElementById('menuSet'); box.innerHTML='';
   (SETTINGS.menus||DEFAULT_MENUS).forEach(m=>addMenuRow(m));
 }
@@ -798,6 +823,10 @@ async function saveSettings(){
     bank:document.getElementById('setBank').value.trim(),
     acct:document.getElementById('setAcct').value.trim(),
     holder:document.getElementById('setHolder').value.trim(),
+    paused:document.getElementById('setPaused').checked,
+    pauseFrom:document.getElementById('setPauseFrom').value||'',
+    pauseUntil:document.getElementById('setPauseUntil').value||'',
+    pauseMsg:document.getElementById('setPauseMsg').value.trim(),
     menus
   };
   try{
