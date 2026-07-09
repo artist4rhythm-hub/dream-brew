@@ -221,6 +221,44 @@ button{font-family:inherit;cursor:pointer;border:none}
 .ticket h3{font-family:'Gowun Batang',serif;font-size:1.3rem;margin:8px 0 2px}
 .ticket .num{font-size:.78rem;color:var(--mocha);letter-spacing:.12em}
 .ticket-body{border-top:1.5px dashed var(--line);margin-top:16px;padding-top:14px;text-align:left;font-size:.88rem}
+
+/* ═══ 데스크톱 화면 (900px 이상) ═══ */
+@media(min-width:900px){
+  body{background:
+    radial-gradient(circle at 8% 12%, rgba(222,142,151,.07), transparent 40%),
+    radial-gradient(circle at 92% 88%, rgba(143,175,126,.09), transparent 40%),
+    #F1E9D8}
+  .wrap{max-width:920px;background:var(--cream);
+    border-left:1px solid var(--line);border-right:1px solid var(--line);
+    box-shadow:0 0 70px rgba(92,74,58,.10)}
+  header{padding:32px 40px 22px}
+  .logo-img{width:140px;height:140px}
+  main{padding:30px 52px 150px}
+  /* 옆으로 밀기 → 전부 펼쳐 보이기 */
+  .tabs{flex-wrap:wrap;overflow:visible;padding-bottom:4px}
+  .menu-strip{flex-wrap:wrap;overflow:visible}
+  /* 명단 3열 */
+  .mem-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:56vh;align-content:start}
+  .room-label{grid-column:1/-1}
+  /* 메뉴 2열 */
+  #menuList{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+  .menu-card{margin-bottom:0}
+  /* 위치 목록·내 주문 2열 */
+  .loc-list.show{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  #myOrderList{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+  .my-card{margin-bottom:0}
+  /* 단계 화면은 가운데 정렬로 읽기 좋게 */
+  #scr-cart,#scr-seat,#scr-pay,#scr-done{max-width:580px;margin:0 auto}
+  /* 하단 주문서 바 */
+  .cart-bar{max-width:920px}
+  .cart-bar-inner{max-width:600px;margin:0 auto}
+}
+/* 마우스 환경: 가로 스크롤 영역에 가는 스크롤바 표시 */
+@media(hover:hover) and (max-width:899px){
+  .tabs,.menu-strip{scrollbar-width:thin}
+  .tabs::-webkit-scrollbar,.menu-strip::-webkit-scrollbar{display:block;height:4px}
+  .tabs::-webkit-scrollbar-thumb,.menu-strip::-webkit-scrollbar-thumb{background:#D9CBB2;border-radius:99px}
+}
 </style>
 </head>
 <body>
