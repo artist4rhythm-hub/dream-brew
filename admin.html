@@ -169,6 +169,16 @@ table.pt{width:100%;border-collapse:collapse;font-size:9.5pt}
 table.pt th{background:#2d6a4f;color:#fff;padding:8px 6px;font-weight:700;border:1px solid #245640}
 table.pt td{padding:7px 6px;border:1px solid #cfdcd4;color:#4a5a50;text-align:center}
 table.pt td.l{text-align:left}
+table.pt col.c-no{width:6%}
+table.pt col.c-name{width:14%}
+table.pt col.c-menu{width:auto}
+table.pt col.c-cups{width:7%}
+table.pt col.c-loc{width:24%}
+table.pt col.c-chk{width:7%}
+table.pt td.name-cell{white-space:nowrap;font-weight:700}
+table.pt td.loc-cell{white-space:normal;word-break:keep-all;line-height:1.35}
+table.pt td.menu-cell{text-align:left;line-height:1.5}
+table.pt td.menu-cell div{padding:1px 0}
 table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top:2px solid #2d6a4f;font-size:10.5pt}
 .pt-section{font-weight:700;color:#2d6a4f;font-size:11pt;margin:16px 0 6px}
 /* 제조 준비표 카드 */
@@ -194,7 +204,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 .lb-menu .idx{font-size:8pt;color:#9a8f7e;font-weight:400}
 .lb-loc{margin-top:auto;font-size:9pt;color:#4a5a50;padding-top:1.6mm;border-top:1px dotted #cfdcd4}
 .lb-loc b{color:#2d6a4f}
-.lb-brand{position:absolute;top:3.5mm;right:3.5mm;font-size:6.5pt;color:#c9bba6;letter-spacing:.1em}
+.lb-brand{position:absolute;bottom:2mm;right:3.5mm;font-size:6pt;color:#d8ccb8;letter-spacing:.14em}
 @media print{ .label-grid{gap:3mm} }
 
 /* ═══ 가로 스크롤 힌트 ═══ */
@@ -1069,11 +1079,18 @@ function printMake(){
       <div class="pm-checks">${'▢ '.repeat(q).trim()}</div>
     </div>`;
   }).join('');
-  const rows=ORDERS.filter(o=>!o.canceled).map((o,i)=>`<tr>
-      <td>${i+1}</td><td class="l">${o.name}</td><td class="l">${itemsText(o)}</td>
-      <td>${o.cups}</td><td class="l">${o.loc}</td>
+  const rows=ORDERS.filter(o=>!o.canceled).map((o,i)=>{
+    const menuLines=(o.items||[]).map(it=>`<div>${it.name} (${it.t==='ice'?'ICE':'HOT'}) × ${it.q}</div>`).join('');
+    return `<tr>
+      <td>${i+1}</td>
+      <td class="name-cell">${o.name}</td>
+      <td class="menu-cell">${menuLines}</td>
+      <td>${o.cups}</td>
+      <td class="loc-cell">${o.loc}</td>
       <td style="font-size:12pt">▢</td><td style="font-size:12pt">▢</td>
-    </tr>`).join('');
+      <td></td>
+    </tr>`;
+  }).join('');
   document.getElementById('printArea').innerHTML=`
     <div class="pt-title">꿈Brew 제조 준비표</div>
     <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${fr.getFullYear()}년 ${fr.getMonth()+1}월 ${fr.getDate()}일(${DAYNAMES[fr.getDay()]}) 제조분</div>
@@ -1084,7 +1101,11 @@ function printMake(){
     </table>
     <div class="pt-section">② 주문별 제조 · 배달 체크리스트</div>
     <table class="pt">
-      <tr><th>No</th><th>이름</th><th>주문 내역</th><th>잔수</th><th>배달 위치</th><th>제조</th><th>배달</th></tr>
+      <colgroup>
+        <col class="c-no"><col class="c-name"><col class="c-menu"><col class="c-cups">
+        <col class="c-loc"><col class="c-chk"><col class="c-chk"><col style="width:14%">
+      </colgroup>
+      <tr><th>No</th><th>이름</th><th>주문 내역</th><th>잔수</th><th>배달 위치</th><th>제조</th><th>배달</th><th>배달 담당</th></tr>
       ${rows}
     </table>`;
   window.print();
