@@ -305,6 +305,7 @@ button{font-family:inherit;cursor:pointer;border:none}
         <span><b>입금을 완료했습니다</b><br><small style="color:var(--mocha)">담당 선생님이 입금을 최종 확인합니다.</small></span>
       </label>
       <button class="btn" id="orderBtn" disabled onclick="submitOrder()">주문 완료하기</button>
+      <p class="hint" id="orderHint" style="margin-top:8px">☝ 입금 후 위의 <b>‘입금을 완료했습니다’</b>를 체크하면 버튼이 활성화됩니다.</p>
       <button class="btn ghost" onclick="go('scr-seat')">← 배달 위치로</button>
     </section>
 
@@ -611,6 +612,7 @@ function toggleLocList(){
 /* ═════════ 5. 입금 ═════════ */
 function renderPay(){
   const pay=rawTotal()-discount();
+  document.getElementById('paidCheck').checked=false;
   document.getElementById('payAmount').textContent=pay.toLocaleString()+'원';
   const zero=pay===0;
   document.querySelector('.account-card').style.display=zero?'none':'block';
@@ -619,6 +621,7 @@ function renderPay(){
     ? '🎟 쿠폰으로 전액 결제됩니다. 입금 없이 바로 주문을 완료하세요!'
     : `아래 계좌로 <b>${pay.toLocaleString()}원</b>을 입금해 주세요.`;
   document.getElementById('orderBtn').disabled=zero?false:!document.getElementById('paidCheck').checked;
+  document.getElementById('orderHint').style.display=zero?'none':'block';
 }
 function copyAccount(){
   const txt=SETTINGS.acct;
@@ -630,7 +633,11 @@ function copyAccount(){
   if(navigator.clipboard)navigator.clipboard.writeText(txt).then(done).catch(done);
   else done();
 }
-function updateOrderBtn(){ document.getElementById('orderBtn').disabled=!document.getElementById('paidCheck').checked; }
+function updateOrderBtn(){
+  const ok=document.getElementById('paidCheck').checked;
+  document.getElementById('orderBtn').disabled=!ok;
+  document.getElementById('orderHint').style.display=ok?'none':'block';
+}
 
 /* ═════════ 6. 주문 저장 ═════════ */
 async function submitOrder(){
