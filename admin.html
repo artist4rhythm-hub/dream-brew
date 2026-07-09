@@ -88,6 +88,11 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .done-details[open] summary::before{content:'▾ ';}
 .done-details .inner{padding:0 12px 12px}
 .order-card.done-card{opacity:.75;background:#FBF9F3}
+.order-card.cancel-card{opacity:.55;background:#FAF3F0;border-color:#EBD5CE}
+.badge.cancel{background:#F6ECE9;color:#B4533C}
+.del-btn{background:transparent;border:1px solid var(--line);border-radius:8px;
+  padding:5px 10px;font-size:.74rem;color:var(--mocha)}
+.del-btn:hover{color:#B4533C;border-color:#EBD5CE}
 
 /* 제조 집계 */
 .make-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -650,38 +655,66 @@ function orderCardHTML(o,doneStyle){
     ? `<span class="badge coupon">쿠폰 전액 결제</span>`
     : o.selfPaid ? `<span class="badge self">본인 입금 신고 ✓</span>`
                  : `<span class="badge none">입금 신고 없음</span>`;
+  const foot = o.canceled
+    ? `<span class="badge cancel">❌ 주문자가 취소한 주문${o.couponUsed?` (쿠폰 ${o.couponUsed}잔 반환됨)`:''}</span>
+       <button class="del-btn" onclick="deleteOrder('${o.id}')">목록에서 삭제</button>`
+    : `${payBadge}
+      <span class="oc-checks">
+        <label class="confirm-check ${o.confirmed?'done':''}">
+          <input type="checkbox" ${o.confirmed?'checked':''} onchange="toggleField('${o.id}','confirmed',this)"> 입금
+        </label>
+        <label class="confirm-check ${o.made?'done':''}">
+          <input type="checkbox" ${o.made?'checked':''} onchange="toggleField('${o.id}','made',this)"> 제조
+        </label>
+        <label class="confirm-check ${o.delivered?'done':''}">
+          <input type="checkbox" ${o.delivered?'checked':''} onchange="toggleField('${o.id}','delivered',this)"> 배달
+        </label>
+        <button class="del-btn" onclick="deleteOrder('${o.id}')">삭제</button>
+      </span>`;
   return `
-    <div class="order-card${doneStyle?' done-card':''}">
+    <div class="order-card${doneStyle?' done-card':''}${o.canceled?' cancel-card':''}">
       <div class="oc-top">
         <span class="oc-name">${o.name}<small>내선 ${o.ext||'-'}</small></span>
         <span class="oc-amt">${o.pay.toLocaleString()}원${o.couponUsed?` <span class="badge coupon">쿠폰 ${o.couponUsed}잔</span>`:''}</span>
       </div>
       <div class="oc-items">${itemsText(o)} · 총 ${o.cups}잔</div>
       <div class="oc-loc">📍 ${o.loc}</div>
-      <div class="oc-foot">
-        ${payBadge}
-        <span class="oc-checks">
-          <label class="confirm-check ${o.confirmed?'done':''}">
-            <input type="checkbox" ${o.confirmed?'checked':''} onchange="toggleField('${o.id}','confirmed',this)"> 입금
-          </label>
-          <label class="confirm-check ${o.made?'done':''}">
-            <input type="checkbox" ${o.made?'checked':''} onchange="toggleField('${o.id}','made',this)"> 제조
-          </label>
-          <label class="confirm-check ${o.delivered?'done':''}">
-            <input type="checkbox" ${o.delivered?'checked':''} onchange="toggleField('${o.id}','delivered',this)"> 배달
-          </label>
-        </span>
-      </div>
+      <div class="oc-foot">${foot}</div>
     </div>`;
+}
+async function deleteOrder(id){
+  if(!confirm('이 주문을 목록에서 완전히 삭제할까요?\n(사용된 쿠폰이 아직 반환 전이면 자동으로 반환됩니다)')) return;
+  try{
+    await db.runTransaction(async tx=>{
+      const oref=db.collection('orders').doc(id);
+      const od=await tx.get(oref);
+      if(!od.exists) return;
+      const o=od.data();
+      let mref=null, md=null;
+      if((o.couponUsed||0)>0 && !o.canceled){
+        mref=db.collection('members').doc(o.memberId);
+        md=await tx.get(mref);
+      }
+      if(mref&&md&&md.exists){
+        tx.update(mref,{coupons:(md.data().coupons||0)+o.couponUsed});
+        tx.set(db.collection('coupon_logs').doc(),{name:o.name,delta:o.couponUsed,memo:'주문 삭제 반환',by:ADMIN.name,at:FV.serverTimestamp()});
+      }
+      tx.delete(oref);
+    });
+    loadMembers();
+  }catch(e){ alert('삭제 실패 — 다시 시도해 주세요.'); console.error(e); }
 }
 function renderOrders(){
   const list=document.getElementById('orderList'); list.innerHTML='';
+  const valid=ORDERS.filter(o=>!o.canceled);
   let cups=0,sum=0,unpaid=0;
-  ORDERS.forEach(o=>{ cups+=o.cups; sum+=o.pay; if(!o.confirmed)unpaid++; });
-  const active=ORDERS.filter(o=>!o.delivered);
-  const done=ORDERS.filter(o=>o.delivered);
+  valid.forEach(o=>{ cups+=o.cups; sum+=o.pay; if(!o.confirmed)unpaid++; });
+  const active=valid.filter(o=>!o.delivered);
+  const done=valid.filter(o=>o.delivered);
+  const canceled=ORDERS.filter(o=>o.canceled);
   if(!ORDERS.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">이 주차에는 아직 주문이 없습니다.</p>';
   active.forEach(o=>list.insertAdjacentHTML('beforeend',orderCardHTML(o,false)));
+  canceled.forEach(o=>list.insertAdjacentHTML('beforeend',orderCardHTML(o,false)));
   if(done.length){
     list.insertAdjacentHTML('beforeend',`
       <details class="done-details">
@@ -689,7 +722,7 @@ function renderOrders(){
         <div class="inner">${done.map(o=>orderCardHTML(o,true)).join('')}</div>
       </details>`);
   }
-  document.getElementById('stOrders').textContent=ORDERS.length;
+  document.getElementById('stOrders').textContent=valid.length;
   document.getElementById('stCups').textContent=cups;
   document.getElementById('stUnpaid').textContent=unpaid;
   document.getElementById('stSum').textContent=sum.toLocaleString();
@@ -703,7 +736,7 @@ function toggleField(id,field,el){
 /* ═════════ 제조 집계 ═════════ */
 function makeAgg(){
   const agg={};
-  ORDERS.forEach(o=>(o.items||[]).forEach(i=>{
+  ORDERS.filter(o=>!o.canceled).forEach(o=>(o.items||[]).forEach(i=>{
     const k=i.name+'|'+i.t; agg[k]=(agg[k]||0)+i.q;
   }));
   return agg;
@@ -726,7 +759,7 @@ function renderMake(){
 /* ═════════ 배달 동선 ═════════ */
 function renderRoute(){
   const byLoc={};
-  ORDERS.forEach(o=>{ (byLoc[o.loc]=byLoc[o.loc]||[]).push(o); });
+  ORDERS.filter(o=>!o.canceled&&!o.delivered).forEach(o=>{ (byLoc[o.loc]=byLoc[o.loc]||[]).push(o); });
   const list=document.getElementById('routeList'); list.innerHTML='';
   if(!ORDERS.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">이 주차에는 아직 주문이 없습니다.</p>';
   Object.entries(byLoc).forEach(([loc,arr])=>{
@@ -959,7 +992,7 @@ function printMake(){
       <div class="pm-checks">${'▢ '.repeat(q).trim()}</div>
     </div>`;
   }).join('');
-  const rows=ORDERS.map((o,i)=>`<tr>
+  const rows=ORDERS.filter(o=>!o.canceled).map((o,i)=>`<tr>
       <td>${i+1}</td><td class="l">${o.name}</td><td class="l">${itemsText(o)}</td>
       <td>${o.cups}</td><td class="l">${o.loc}</td>
       <td style="font-size:12pt">▢</td><td style="font-size:12pt">▢</td>
@@ -984,7 +1017,7 @@ function printMake(){
 function printSheet(){
   const th=weekDateObj();
   let rows='',cups=0,raw=0,disc=0,pay=0;
-  ORDERS.forEach((o,i)=>{
+  ORDERS.filter(o=>!o.canceled).forEach((o,i)=>{
     cups+=o.cups; raw+=o.raw; disc+=o.discount; pay+=o.pay;
     const items=(o.items||[]).map(x=>`${x.name}(${x.t==='ice'?'I':'H'})×${x.q}`).join(', ');
     rows+=`<tr>
