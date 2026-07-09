@@ -112,6 +112,10 @@ button{font-family:inherit;cursor:pointer;border:none}
 .menu-name small{font-family:'Noto Sans KR';font-size:.72rem;color:var(--mocha);font-weight:400;margin-left:4px}
 .menu-price{font-weight:700;color:var(--gold);font-size:.95rem;white-space:nowrap}
 .menu-ctrl{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
+.temp-row{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.temp-label{font-size:.78rem;font-weight:700;border-radius:999px;padding:5px 16px;min-width:76px;text-align:center}
+.temp-label.ice{background:var(--ice-soft);color:var(--ice);border:1px solid #DCE3EE}
+.temp-label.hot{background:var(--hot-soft);color:var(--hot);border:1px solid #EEDAD3}
 .temp-toggle{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
 .temp-toggle button{padding:6px 16px;font-size:.8rem;font-weight:500;background:var(--paper);color:var(--mocha)}
 .temp-toggle button.on.ice{background:var(--ice);color:#fff}
@@ -507,44 +511,34 @@ function enterMenu(){
   go('scr-menu');
 }
 
-/* ═════════ 2. 메뉴 ═════════ */
-const tempSel={};
+/* ═════════ 2. 메뉴 (ICE/HOT 개별 수량) ═════════ */
 function renderMenu(){
   const menuList=document.getElementById('menuList'); menuList.innerHTML='';
   MENUS.forEach(m=>{
-    tempSel[m.id]=tempSel[m.id]||m.temps[0];
-    const both=m.temps.length>1;
     const card=document.createElement('div'); card.className='menu-card';
+    const rows=m.temps.map(t=>`
+      <div class="temp-row">
+        <span class="temp-label ${t}">${t==='ice'?'ICE ❄':'HOT ♨'}</span>
+        <div class="qty">
+          <button onclick="chgQty('${m.id}','${t}',-1)" aria-label="${m.name} ${t} 빼기">−</button>
+          <span id="q-${m.id}-${t}">0</span>
+          <button onclick="chgQty('${m.id}','${t}',1)" aria-label="${m.name} ${t} 담기">＋</button>
+        </div>
+      </div>`).join('');
     card.innerHTML=`
       <div class="menu-top">
         <span class="menu-name">${m.name}${m.sub?`<small>${m.sub}</small>`:''}</span>
         <span class="menu-price">${m.price.toLocaleString()}원</span>
       </div>
-      <div class="menu-ctrl">
-        ${both?`<div class="temp-toggle">
-            <button class="ice on" onclick="setTemp('${m.id}','ice',this)">ICE</button>
-            <button class="hot" onclick="setTemp('${m.id}','hot',this)">HOT</button>
-          </div>`:`<span class="temp-only">ICE ONLY ❄</span>`}
-        <div class="qty">
-          <button onclick="chgQty('${m.id}',-1)" aria-label="${m.name} 빼기">−</button>
-          <span id="q-${m.id}">0</span>
-          <button onclick="chgQty('${m.id}',1)" aria-label="${m.name} 담기">＋</button>
-        </div>
-      </div>`;
+      ${rows}`;
     menuList.appendChild(card);
   });
 }
-function setTemp(id,t,btn){
-  tempSel[id]=t;
-  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));
-  btn.classList.add('on');
-}
-function chgQty(id,d){
-  const key=id+'_'+tempSel[id];
+function chgQty(id,t,d){
+  const key=id+'_'+t;
   cart[key]=(cart[key]||0)+d;
   if(cart[key]<=0)delete cart[key];
-  const total=Object.keys(cart).filter(k=>k.startsWith(id+'_')).reduce((s,k)=>s+cart[k],0);
-  document.getElementById('q-'+id).textContent=total;
+  document.getElementById(`q-${id}-${t}`).textContent=cart[key]||0;
   renderCartBar();
 }
 function cupCount(){ return Object.values(cart).reduce((s,v)=>s+v,0); }
