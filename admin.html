@@ -217,21 +217,34 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 .pm-qty small{font-size:9pt;color:#5a6e62;margin-left:2px}
 .pm-checks{font-size:11pt;color:#4a5a50;letter-spacing:2px;margin-top:4px;word-break:break-all}
 /* 컵 라벨 (오려붙이기) */
-.label-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4mm}
-.label{border:1px dashed #9aae90;border-radius:4mm;padding:4mm 3.5mm;page-break-inside:avoid;
-  display:flex;flex-direction:column;min-height:30mm;position:relative}
-.lb-top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #d8e0d2;padding-bottom:1.6mm;margin-bottom:1.6mm}
-.lb-name{font-weight:900;font-size:12pt;color:#2d4a38}
-.lb-name small{font-weight:400;font-size:7.5pt;color:#7a8a72;margin-left:2px}
-.lb-temp{font-size:8pt;font-weight:900;border-radius:99px;padding:1mm 3mm;white-space:nowrap}
-.lb-temp.ice{background:#eef2f8;color:#5573a8;border:1px solid #cdd8ea}
-.lb-temp.hot{background:#f8eeeb;color:#b0553f;border:1px solid #ead2c9}
-.lb-menu{font-size:12.5pt;font-weight:900;color:#2d2620;line-height:1.25}
-.lb-menu .idx{font-size:8pt;color:#9a8f7e;font-weight:400}
-.lb-loc{margin-top:auto;font-size:9pt;color:#4a5a50;padding-top:1.6mm;border-top:1px dotted #cfdcd4}
-.lb-loc b{color:#2d6a4f}
-.lb-brand{position:absolute;bottom:2mm;right:3.5mm;font-size:6pt;color:#d8ccb8;letter-spacing:.14em}
-@media print{ .label-grid{gap:3mm} }
+.label-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:5mm}
+.label{border:1.5px solid #2d2620;border-radius:3mm;page-break-inside:avoid;
+  overflow:hidden;display:flex;flex-direction:column;min-height:42mm;position:relative}
+/* 상단 색 띠 = ICE/HOT 즉시 구분 */
+.lb-band{padding:2mm 4mm;display:flex;justify-content:space-between;align-items:center;
+  font-weight:900;letter-spacing:.05em}
+.lb-band.ice{background:#3f5f8f;color:#fff}
+.lb-band.hot{background:#a8442c;color:#fff}
+.lb-temp-big{font-size:13pt}
+.lb-slot{font-size:10pt;font-weight:900;background:rgba(255,255,255,.22);
+  border-radius:99px;padding:.6mm 3mm}
+/* 본문 */
+.lb-body{padding:3mm 4mm 2mm;flex:1;display:flex;flex-direction:column}
+.lb-menu{font-size:17pt;font-weight:900;color:#1a1512;line-height:1.15;letter-spacing:-.01em}
+.lb-idx{font-size:9pt;font-weight:700;color:#fff;background:#B08434;border-radius:99px;
+  padding:.5mm 2.5mm;margin-left:1.5mm;vertical-align:middle;white-space:nowrap}
+/* 얼음 옵션 강조 */
+.lb-opt{margin-top:1.8mm;font-size:12pt;font-weight:900;color:#1d4e89;
+  background:#e4ecf7;border:1.2px solid #3f5f8f;border-radius:2mm;padding:1.2mm 3mm;
+  display:inline-block;align-self:flex-start}
+/* 받는 사람 */
+.lb-to{margin-top:auto;padding-top:2.5mm;border-top:1.5px dashed #b8ac97}
+.lb-name{font-size:14pt;font-weight:900;color:#1a1512}
+.lb-loc{font-size:10pt;color:#3c4a40;margin-top:.8mm;line-height:1.35}
+.lb-loc b{color:#1c5c40;font-weight:900}
+.lb-brand{position:absolute;bottom:1.6mm;right:3mm;font-size:6pt;color:#c9bba6;letter-spacing:.14em}
+.cut-note{font-size:8.5pt;color:#7a8a72;text-align:center;margin:2mm 0 3mm}
+@media print{ .label-grid{gap:4mm} }
 
 /* ═══ 가로 스크롤 힌트 ═══ */
 .tabs{
@@ -1328,21 +1341,27 @@ function printLabels(){
   const cards=cups.map(c=>{
     perIndex[c.name]=(perIndex[c.name]||0)+1;
     const multi=perCount[c.name]>1;
-    const idx=multi?`<span class="idx"> (${perIndex[c.name]}/${perCount[c.name]}잔)</span>`:'';
+    const idx=multi?`<span class="lb-idx">${perIndex[c.name]}/${perCount[c.name]}</span>`:'';
     return `<div class="label">
-      <div class="lb-brand">꿈Brew</div>
-      <div class="lb-top">
-        <span class="lb-name">${c.name} 선생님</span>
-        <span class="lb-temp ${c.temp}">${c.temp==='ice'?'ICE ❄':'HOT ♨'}</span>
+      <div class="lb-band ${c.temp}">
+        <span class="lb-temp-big">${c.temp==='ice'?'❄ ICE':'♨ HOT'}</span>
+        ${c.slot?`<span class="lb-slot">${c.slot}</span>`:''}
       </div>
-      <div class="lb-menu">${c.menu}${idx}</div>
-      ${c.opt?`<div style="font-size:8.5pt;color:#5573a8;font-weight:700;margin-top:1mm">🧊 ${c.opt}</div>`:''}
-      <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?` · 내선 ${c.ext}`:''}${c.slot?`<br>🕐 ${c.slot}`:''}</div>
+      <div class="lb-body">
+        <div class="lb-menu">${c.menu}${idx}</div>
+        ${c.opt?`<div class="lb-opt">🧊 ${c.opt}</div>`:''}
+        <div class="lb-to">
+          <div class="lb-name">${c.name} 선생님</div>
+          <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?` · 내선 ${c.ext}`:''}</div>
+        </div>
+      </div>
+      <div class="lb-brand">꿈Brew</div>
     </div>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
     <div class="pt-title">꿈Brew 컵 라벨</div>
-    <div class="pt-sub">${fr.getFullYear()}년 ${fr.getMonth()+1}월 ${fr.getDate()}일(${DAYNAMES[fr.getDay()]}) 제조분 · 총 ${cups.length}잔 · 점선을 따라 오려 컵에 붙이세요</div>
+    <div class="pt-sub">${fr.getFullYear()}년 ${fr.getMonth()+1}월 ${fr.getDate()}일(${DAYNAMES[fr.getDay()]}) 제조분 · 총 <b>${cups.length}잔</b></div>
+    <div class="cut-note">✂️ 테두리를 따라 오려서 컵에 붙이세요 · 교시 → 배달 위치 순으로 정렬되어 있습니다</div>
     <div class="label-grid">${cards}</div>`;
   window.print();
 }
