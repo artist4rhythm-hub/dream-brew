@@ -143,6 +143,17 @@ button{font-family:inherit;cursor:pointer;border:none}
   line-height:1.7;margin-bottom:18px;
 }
 .intro-card b{color:var(--brew-deep)}
+.guest-msg{margin-top:22px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px}
+.guest-msg summary{font-size:.88rem;font-weight:700;color:var(--brew);cursor:pointer;list-style:none;
+  display:flex;justify-content:space-between;align-items:center}
+.guest-msg summary::-webkit-details-marker{display:none}
+.guest-msg summary::after{content:'＋';color:var(--mocha);font-weight:400}
+.guest-msg[open] summary::after{content:'−'}
+.guest-msg .inner{margin-top:12px}
+.gm-row{display:flex;gap:8px;margin-bottom:8px}
+.gm-row input{flex:1;font-family:inherit;font-size:.88rem;padding:10px 12px;
+  border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--brew-deep)}
+.gm-row input:focus{outline:none;border-color:var(--dream)}
 .admin-link{display:block;text-align:center;margin-top:26px;font-size:.72rem;color:#C9BBA6;text-decoration:none}
 .admin-link:hover{color:var(--mocha)}
 
@@ -348,6 +359,19 @@ button{font-family:inherit;cursor:pointer;border:none}
         </div>
         <div class="tabs" id="tabBar"></div>
         <div class="mem-list" id="memList"></div>
+        <details class="guest-msg">
+          <summary>💬 담당 선생님께 메시지 보내기</summary>
+          <div class="inner">
+            <p class="hint" style="text-align:left;margin-bottom:10px">
+              로그인 없이도 건의사항이나 문의를 남기실 수 있어요.</p>
+            <div class="gm-row">
+              <input type="text" id="gmName" placeholder="성함 (선택)" autocomplete="off">
+            </div>
+            <textarea id="gmText" placeholder="예: 디카페인 옵션도 있으면 좋겠어요!"></textarea>
+            <button class="btn" style="margin-top:8px" onclick="sendGuestNote()">메시지 보내기</button>
+            <div id="gmSent"></div>
+          </div>
+        </details>
         <a class="admin-link" href="admin.html">⚙ 운영자 · 관리자 로그인</a>
       </div>
 
@@ -1112,6 +1136,22 @@ async function sendReview(id,info){
     document.getElementById('rv-'+id).innerHTML='<div class="sent-note">후기가 전달되었습니다. 감사합니다! 💛</div>';
   }catch(e){ console.error(e); alert('전송에 실패했습니다. 다시 시도해 주세요.'); }
 }
+async function sendGuestNote(){
+  const ta=document.getElementById('gmText');
+  const text=ta.value.trim();
+  if(!text){ alert('메시지를 입력해 주세요.'); return; }
+  const nm=document.getElementById('gmName').value.trim()||'익명';
+  try{
+    await db.collection('messages').add({
+      kind:'note', name:nm, memberId:'', text,
+      at:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    ta.value=''; document.getElementById('gmName').value='';
+    document.getElementById('gmSent').innerHTML='<div class="sent-note">메시지가 전달되었습니다 💌</div>';
+    setTimeout(()=>{document.getElementById('gmSent').innerHTML='';},4000);
+  }catch(e){ console.error(e); alert('전송에 실패했습니다.'); }
+}
+
 async function sendNote(){
   const ta=document.getElementById('noteText');
   const text=ta.value.trim();
