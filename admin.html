@@ -285,11 +285,11 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
     <button class="tab on" data-p="p-orders">📋 주문 취합</button>
     <button class="tab" data-p="p-make">☕ 제조 준비</button>
     <button class="tab" data-p="p-route">🚶 배달 동선</button>
-    <button class="tab" data-p="p-coupon">🎟 쿠폰 관리</button>
     <button class="tab" data-p="p-week">📅 주차별 일정</button>
+    <button class="tab" data-p="p-coupon">🎟 쿠폰 관리</button>
     <button class="tab" data-p="p-msg">💬 후기·메시지</button>
     <button class="tab" data-p="p-members">👥 명단 관리</button>
-    <button class="tab" data-p="p-set">⚙️ 설정</button>
+    <button class="tab" data-p="p-set">⚙️ 기본 설정</button>
     <button class="tab super-only" data-p="p-super">👑 시스템 관리</button>
   </nav>
 
@@ -346,8 +346,14 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 
     <!-- ═══ 설정 ═══ -->
     <section class="panel" id="p-set">
+      <div class="set-group" style="background:var(--gold-soft);border-color:#EEDFBC">
+        <h4>ℹ️ 기본 설정 안내</h4>
+        <p class="hint">여기서 정한 값은 <b>모든 주차의 기본값</b>입니다.<br>
+        특정 주차만 다르게 하려면 <b>📅 주차별 일정</b> 탭에서 설정하세요 —
+        <b>주차별 일정이 항상 기본 설정보다 우선</b> 적용됩니다.</p>
+      </div>
       <div class="set-group">
-        <h4>⏰ 주문 마감</h4>
+        <h4>⏰ 기본 주문 마감 <span style="font-size:.7rem;color:var(--mocha);font-weight:400">(주차별 일정이 없을 때 적용)</span></h4>
         <div class="set-row">
           <label>마감 요일</label>
           <select id="setDay">
@@ -741,6 +747,7 @@ async function loadPlans(){
     PLANS={}; snap.docs.forEach(d=>PLANS[d.id]=d.data());
   }catch(e){ console.error(e); }
   fillWeekSelect();
+  updateWeekChip();
 }
 function fillWeekSelect(){
   const sel=document.getElementById('wkSel');
@@ -811,6 +818,8 @@ async function saveWeekPlan(){
   try{
     await db.collection('plans').doc(week).set(data,{merge:true});
     PLANS[week]=data;
+    updateWeekChip();
+    setupWeeks();
     alert('이 주차 일정이 저장되었습니다. 주문 페이지에 바로 반영됩니다.');
     updateSlotUsage();
   }catch(e){ alert('저장 실패'); console.error(e); }
@@ -863,6 +872,39 @@ function deadlinePair(){
   const prev=new Date(next); prev.setDate(prev.getDate()-7);
   return {prev,next,now};
 }
+// 주차 키(week)에 실제 적용되는 마감 일시 — 주차별 일정이 있으면 그것을 우선
+function effDeadline(week){
+  const p=PLANS[week];
+  if(p&&p.deadDate){
+    const [y,m,d]=p.deadDate.split('-').map(Number);
+    const [hh,mm]=(p.deadTime||'16:00').split(':').map(Number);
+    return new Date(y,m-1,d,hh,mm,0,0);
+  }
+  const [y,m,d]=week.split('-').map(Number);
+  const [hh,mm]=(SETTINGS.deadlineTime||'16:00').split(':').map(Number);
+  return new Date(y,m-1,d,hh,mm,0,0);
+}
+function effDeliver(week){
+  const p=PLANS[week];
+  if(p&&p.deliverDate){
+    const [y,m,d]=p.deliverDate.split('-').map(Number);
+    return new Date(y,m-1,d);
+  }
+  const dl=effDeadline(week);
+  const d=new Date(dl); d.setDate(d.getDate()+1); d.setHours(0,0,0,0);
+  return d;
+}
+function updateWeekChip(){
+  const {next}=deadlinePair();
+  const wkey=wk(next);
+  const dl=effDeadline(wkey), dv=effDeliver(wkey);
+  const p=PLANS[wkey];
+  const custom=p&&(p.deadDate||p.deliverDate);
+  document.getElementById('weekChip').innerHTML=
+    `🧾 ${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감`+
+    ` · 🚶 ${dv.getMonth()+1}/${dv.getDate()}(${DAYNAMES[dv.getDay()]}) 배달`+
+    (custom?' <b style="color:var(--dream)">·주차설정</b>':'');
+}
 const wk=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const wkLabel=d=>`${d.getMonth()+1}/${d.getDate()}(${DAYNAMES[d.getDay()]}) 마감분`;
 async function setupWeeks(){
@@ -882,8 +924,7 @@ async function setupWeeks(){
   const def=(now-prev)<36*36e5 ? wk(prev) : wk(next);
   sel.value=arr.includes(def)?def:arr[0];
   sel.onchange=()=>subscribeOrders(sel.value);
-  document.getElementById('weekChip').textContent=
-    `${next.getMonth()+1}/${next.getDate()}(${DAYNAMES[next.getDay()]}) ${SETTINGS.deadlineTime} 마감`;
+  updateWeekChip();
   subscribeOrders(sel.value);
   if(Object.keys(PLANS).length||document.getElementById('wkSel')) fillWeekSelect();
 }
@@ -909,6 +950,18 @@ document.querySelectorAll('.tab').forEach(t=>{
 });
 
 /* ═════════ 주문 취합 ═════════ */
+function slotOrder(name){
+  const {next}=deadlinePair();
+  const p=PLANS[curWeek]||PLANS[wk(next)]||{};
+  const idx=(p.slots||[]).findIndex(s=>s.name===name);
+  return idx<0?999:idx;
+}
+function sortedOrders(){
+  return ORDERS.filter(o=>!o.canceled).slice().sort((a,b)=>
+    slotOrder(a.slot)-slotOrder(b.slot) ||
+    (a.loc>b.loc?1:a.loc<b.loc?-1:0) ||
+    (a.name>b.name?1:-1));
+}
 function itemsText(o){ return (o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()}${i.opt?', '+i.opt:''})×${i.q}`).join(', '); }
 function orderCardHTML(o,doneStyle){
   const payBadge = o.payByCoupon
@@ -1020,7 +1073,7 @@ function renderMake(){
 /* ═════════ 배달 동선 ═════════ */
 function renderRoute(){
   const byLoc={};
-  ORDERS.filter(o=>!o.canceled&&!o.delivered).forEach(o=>{
+  sortedOrders().filter(o=>!o.delivered).forEach(o=>{
     const key=(o.slot?o.slot+' · ':'')+o.loc;
     (byLoc[key]=byLoc[key]||[]).push(o); });
   const list=document.getElementById('routeList'); list.innerHTML='';
@@ -1258,7 +1311,7 @@ async function resetMemberPin(){
 /* ═════════ 컵 라벨 인쇄 (음료 한 잔당 카드 1개) ═════════ */
 function printLabels(){
   const th=weekDateObj(); const fr=new Date(th); fr.setDate(th.getDate()+1);
-  const valid=ORDERS.filter(o=>!o.canceled);
+  const valid=sortedOrders();
   // 음료 단위로 펼치기 (한 잔 = 라벨 1개)
   const cups=[];
   valid.forEach(o=>{
@@ -1269,8 +1322,7 @@ function printLabels(){
     });
   });
   if(!cups.length){ alert('이 주차에는 라벨로 출력할 주문이 없습니다.'); return; }
-  // 같은 사람끼리 모으고, 개인별 번호 부여 (여러 잔 구분용)
-  cups.sort((a,b)=> a.name===b.name ? 0 : (a.name>b.name?1:-1));
+  // 이미 교시→위치→이름 순으로 정렬됨 (배달 동선대로 오려 쓰기 좋게)
   const perCount={}, perIndex={};
   cups.forEach(c=>{ perCount[c.name]=(perCount[c.name]||0)+1; });
   const cards=cups.map(c=>{
@@ -1309,8 +1361,8 @@ function printMake(){
       <div class="pm-checks">${'▢ '.repeat(q).trim()}</div>
     </div>`;
   }).join('');
-  const rows=ORDERS.filter(o=>!o.canceled).map((o,i)=>{
-    const menuLines=(o.items||[]).map(it=>`<div>${it.name} (${it.t==='ice'?'ICE':'HOT'}) × ${it.q}</div>`).join('');
+  const rows=sortedOrders().map((o,i)=>{
+    const menuLines=(o.items||[]).map(it=>`<div>${it.name} (${it.t==='ice'?'ICE':'HOT'}${it.opt?', '+it.opt:''}) × ${it.q}</div>`).join('');
     return `<tr>
       <td>${i+1}</td>
       <td class="name-cell">${o.name}</td>
@@ -1345,14 +1397,17 @@ function printMake(){
 function printSheet(){
   const th=weekDateObj();
   let rows='',cups=0,raw=0,disc=0,pay=0;
-  ORDERS.filter(o=>!o.canceled).forEach((o,i)=>{
+  sortedOrders().forEach((o,i)=>{
     cups+=o.cups; raw+=o.raw; disc+=o.discount; pay+=o.pay;
-    const items=(o.items||[]).map(x=>`${x.name}(${x.t==='ice'?'I':'H'})×${x.q}`).join(', ');
+    const items=(o.items||[]).map(x=>
+      `<div>${x.name} (${x.t==='ice'?'ICE':'HOT'}${x.opt?', '+x.opt:''}) × ${x.q}</div>`).join('');
     rows+=`<tr>
-      <td>${i+1}</td><td class="l">${o.name}</td><td class="l">${items}</td>
+      <td>${i+1}</td><td class="name-cell">${o.name}</td>
+      <td class="menu-cell">${items}</td>
       <td>${o.cups}</td><td>${o.couponUsed||''}</td>
       <td>${o.pay.toLocaleString()}</td>
-      <td class="l">${o.loc}</td>
+      <td>${o.slot||'-'}</td>
+      <td class="loc-cell">${o.loc}</td>
       <td>${o.confirmed?'✔':''}</td>
     </tr>`;
   });
@@ -1364,9 +1419,14 @@ function printSheet(){
     <div class="pt-title">꿈Brew 주간 주문 취합표</div>
     <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${th.getFullYear()}년 ${th.getMonth()+1}월 ${th.getDate()}일(${DAYNAMES[th.getDay()]}) 마감분</div>
     <table class="pt">
-      <tr><th>No</th><th>이름</th><th>주문 내역</th><th>잔수</th><th>쿠폰</th><th>결제금액</th><th>배달 위치</th><th>입금확인</th></tr>
+      <colgroup>
+        <col style="width:5%"><col style="width:11%"><col><col style="width:6%">
+        <col style="width:6%"><col style="width:10%"><col style="width:9%">
+        <col style="width:19%"><col style="width:8%">
+      </colgroup>
+      <tr><th>No</th><th>이름</th><th>주문 내역</th><th>잔수</th><th>쿠폰</th><th>결제금액</th><th>배달 교시</th><th>배달 위치</th><th>입금확인</th></tr>
       ${rows}
-      <tr class="total"><td colspan="3">합계</td><td>${cups}</td><td></td><td>${pay.toLocaleString()}원</td><td colspan="2">쿠폰할인 ${disc.toLocaleString()}원 포함 시 ${raw.toLocaleString()}원</td></tr>
+      <tr class="total"><td colspan="3">합계</td><td>${cups}</td><td></td><td>${pay.toLocaleString()}원</td><td colspan="3">쿠폰할인 ${disc.toLocaleString()}원 포함 시 ${raw.toLocaleString()}원</td></tr>
     </table>
     <div class="pt-section">제조 집계</div>
     <table class="pt" style="max-width:320px">

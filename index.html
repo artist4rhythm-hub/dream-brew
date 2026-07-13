@@ -568,6 +568,8 @@ function weekKey(){
 const DAYNAMES=['일','월','화','수','목','금','토'];
 function closedState(){
   if(SETTINGS.paused) return {closed:true,msg:SETTINGS.pauseMsg||'',until:SETTINGS.pauseUntil||''};
+  if(nextDeadline()-new Date()<=0)
+    return {closed:true,msg:'이번 주 주문 마감 시간이 지났습니다. 다음 주에 만나요!',until:''};
   const f=SETTINGS.pauseFrom||'', u=SETTINGS.pauseUntil||'';
   if(f||u){
     const n=new Date();
@@ -587,9 +589,14 @@ function tick(){
   }
   chip.classList.remove('closed');
   const dl=nextDeadline(), ms=dl-new Date();
+  if(ms<=0){
+    chip.classList.add('closed');
+    document.getElementById('deadlineText').textContent='⛔ 이번 주 주문이 마감되었습니다';
+    return;
+  }
   const days=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4);
   document.getElementById('deadlineText').textContent=
-    `${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) 마감 · ${days>0?days+'일 ':''}${h}시간 ${m}분 남음`;
+    `${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감 · ${days>0?days+'일 ':''}${h}시간 ${m}분 남음`;
 }
 
 /* ═════════ 초기 로딩 ═════════ */
@@ -611,7 +618,14 @@ async function init(){
       if(!o.canceled&&o.slot) slotUsed[o.slot]=(slotUsed[o.slot]||0)+o.cups; });
   }catch(e){ console.error('slots',e); }
   document.getElementById('menuTitle').textContent=SETTINGS.menuTitle||'오늘의 메뉴';
-  document.getElementById('menuDesc').textContent=SETTINGS.menuDesc||'';
+  let desc=SETTINGS.menuDesc||'';
+  if(PLAN&&PLAN.deliverDate){
+    const [dy,dm,dd]=PLAN.deliverDate.split('-').map(Number);
+    const dt=new Date(dy,dm-1,dd);
+    const slotTxt=(PLAN.slots||[]).map(s=>s.name).join(' · ');
+    desc=`🚶 ${dm}/${dd}(${DAYNAMES[dt.getDay()]}) ${slotTxt} 배달 예정`+(desc?` — ${desc}`:'');
+  }
+  document.getElementById('menuDesc').textContent=desc;
   document.getElementById('accountNum').textContent=`${SETTINGS.bank} ${SETTINGS.acct}`;
   document.getElementById('accountHolder').textContent=`예금주 · ${SETTINGS.holder} (꿈Brew)`;
   renderMenu();
