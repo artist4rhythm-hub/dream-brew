@@ -189,8 +189,12 @@ body.role-super .danger-zone{display:block}
   #printArea,#printArea *{visibility:visible}
   #printArea{display:block;position:absolute;left:0;top:0;width:100%;padding:20px;background:#fff}
 }
-.pt-title{font-family:'Gowun Batang',serif;font-size:18pt;font-weight:700;text-align:center;color:#2d6a4f;margin-bottom:4px}
+.pt-head{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px}
+.pt-logo{width:44px;height:44px;border-radius:50%;border:1.5px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.15);flex:none}
+.pt-title{font-family:'Gowun Batang',serif;font-size:18pt;font-weight:700;text-align:center;color:#2d6a4f;margin-bottom:0}
 .pt-sub{text-align:center;font-size:9pt;color:#5a6e62;margin-bottom:14px}
+@media print{.pt-logo{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 table.pt{width:100%;border-collapse:collapse;font-size:9.5pt}
 table.pt th{background:#2d6a4f;color:#fff;padding:8px 6px;font-weight:700;border:1px solid #245640}
 table.pt td{padding:7px 6px;border:1px solid #cfdcd4;color:#4a5a50;text-align:center}
@@ -976,6 +980,13 @@ document.querySelectorAll('.tab').forEach(t=>{
 });
 
 /* ═════════ 주문 취합 ═════════ */
+function printHead(title){
+  const src=document.getElementById('logoImg')?.src||'';
+  return `<div class="pt-head">
+    ${src?`<img class="pt-logo" src="${src}" alt="">`:''}
+    <div class="pt-title">${title}</div>
+  </div>`;
+}
 function locHTML(loc){
   const m=String(loc||'').match(/^(.*?)\s*(\(.+\))\s*$/);
   return m ? `${m[1]}<span class="paren">${m[2]}</span>` : loc;
@@ -1376,7 +1387,7 @@ function printLabels(){
     </div>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
-    <div class="pt-title">꿈Brew 컵 라벨</div>
+    ${printHead('꿈Brew 컵 라벨')}
     <div class="pt-sub">${fr.getFullYear()}년 ${fr.getMonth()+1}월 ${fr.getDate()}일(${DAYNAMES[fr.getDay()]}) 제조분 · 총 <b>${cups.length}잔</b></div>
     <div class="cut-note">✂️ 테두리를 따라 오려서 컵에 붙이세요 · 교시 → 배달 위치 순으로 정렬되어 있습니다</div>
     <div class="label-grid">${cards}</div>`;
@@ -1415,7 +1426,7 @@ function printMake(){
     </tr>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
-    <div class="pt-title">꿈Brew 제조 준비표</div>
+    ${printHead('꿈Brew 제조 준비표')}
     <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${fr.getFullYear()}년 ${fr.getMonth()+1}월 ${fr.getDate()}일(${DAYNAMES[fr.getDay()]}) 제조분</div>
     <div class="pt-section">① 메뉴별 제조 수량 <span style="font-weight:400;font-size:9pt;color:#5a6e62">— 한 잔 만들 때마다 ▢에 표시하세요</span></div>
     <div class="pm-grid">${cards}</div>
@@ -1463,7 +1474,7 @@ function printSheet(){
     return `<tr><td class="l">${name}${opt?' · '+opt:''}</td><td>${t.toUpperCase()}</td><td>${q}</td></tr>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
-    <div class="pt-title">꿈Brew 주간 주문 취합표</div>
+    ${printHead('꿈Brew 주간 주문 취합표')}
     <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${th.getFullYear()}년 ${th.getMonth()+1}월 ${th.getDate()}일(${DAYNAMES[th.getDay()]}) 마감분</div>
     <table class="pt">
       <colgroup>
