@@ -201,8 +201,11 @@ table.pt col.c-menu{width:auto}
 table.pt col.c-cups{width:7%}
 table.pt col.c-loc{width:24%}
 table.pt col.c-chk{width:7%}
-table.pt td.name-cell{white-space:nowrap;font-weight:700}
-table.pt td.loc-cell{white-space:normal;word-break:keep-all;line-height:1.35}
+table.pt td.name-cell{white-space:nowrap;font-weight:700;padding-left:2px;padding-right:2px}
+table.pt th.br{white-space:pre-line;line-height:1.25;padding-left:2px;padding-right:2px}
+table.pt td.loc-cell{white-space:normal;word-break:keep-all;line-height:1.3;padding-left:3px;padding-right:3px}
+table.pt td.loc-cell .paren{display:block;font-size:8pt;color:#5a6e62}
+table.pt td.loc-cell .slot{display:block;font-weight:900;color:#2d6a4f;margin-top:1px}
 table.pt td.items-cell{padding:0;text-align:left}
 table.inner{width:100%;border-collapse:collapse;font-size:9pt}
 table.inner td{border:none;border-bottom:1px dotted #d6e0d9;padding:3.5px 6px;color:#2d2620;text-align:left}
@@ -973,6 +976,10 @@ document.querySelectorAll('.tab').forEach(t=>{
 });
 
 /* ═════════ 주문 취합 ═════════ */
+function locHTML(loc){
+  const m=String(loc||'').match(/^(.*?)\s*(\(.+\))\s*$/);
+  return m ? `${m[1]}<span class="paren">${m[2]}</span>` : loc;
+}
 function slotOrder(name){
   const {next}=deadlinePair();
   const p=PLANS[curWeek]||PLANS[wk(next)]||{};
@@ -1362,7 +1369,7 @@ function printLabels(){
         ${c.opt?`<div class="lb-opt">🧊 ${c.opt}</div>`:''}
         <div class="lb-to">
           <div class="lb-name">${c.name} 선생님</div>
-          <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?` · 내선 ${c.ext}`:''}</div>
+          <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?`<br><span style="font-size:9pt">내선 ${c.ext}</span>`:''}</div>
         </div>
       </div>
       <div class="lb-brand">꿈Brew</div>
@@ -1402,7 +1409,7 @@ function printMake(){
       <td class="name-cell">${o.name}</td>
       <td class="items-cell"><table class="inner">${menuLines}</table></td>
       <td>${o.cups}</td>
-      <td class="loc-cell">${o.loc}${o.slot?`<br><b style="color:#2d6a4f">${o.slot}</b>`:''}</td>
+      <td class="loc-cell">${locHTML(o.loc)}${o.slot?`<span class="slot">${o.slot}</span>`:''}</td>
       <td style="font-size:12pt">▢</td><td style="font-size:12pt">▢</td>
       <td></td>
     </tr>`;
@@ -1418,10 +1425,12 @@ function printMake(){
     <div class="pt-section">② 주문별 제조 · 배달 체크리스트</div>
     <table class="pt">
       <colgroup>
-        <col style="width:5%"><col style="width:11%"><col style="width:33%"><col style="width:6%">
-        <col style="width:21%"><col style="width:6%"><col style="width:6%"><col style="width:12%">
+        <col style="width:4%"><col style="width:8%"><col style="width:40%"><col style="width:5%">
+        <col style="width:17%"><col style="width:6%"><col style="width:6%"><col style="width:14%">
       </colgroup>
-      <tr><th>No</th><th>이름</th><th>주문 내역 <span style="font-weight:400;font-size:7.5pt">(메뉴 / 옵션 / 잔)</span></th><th>잔수</th><th>배달 위치 · 교시</th><th>제조</th><th>배달</th><th>배달 담당</th></tr>
+      <tr><th>No</th><th>이름</th><th>주문 내역 <span style="font-weight:400;font-size:7.5pt">(메뉴 / 옵션 / 잔)</span></th><th class="br">잔수</th><th class="br">배달 위치
+· 교시</th><th>제조</th><th>배달</th><th class="br">배달
+담당</th></tr>
       ${rows}
     </table>`;
   window.print();
@@ -1445,7 +1454,7 @@ function printSheet(){
       <td>${o.cups}</td><td>${o.couponUsed||''}</td>
       <td>${o.pay.toLocaleString()}</td>
       <td>${o.slot||'-'}</td>
-      <td class="loc-cell">${o.loc}</td>
+      <td class="loc-cell">${locHTML(o.loc)}</td>
       <td>${o.confirmed?'✔':''}</td>
     </tr>`;
   });
@@ -1458,11 +1467,15 @@ function printSheet(){
     <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${th.getFullYear()}년 ${th.getMonth()+1}월 ${th.getDate()}일(${DAYNAMES[th.getDay()]}) 마감분</div>
     <table class="pt">
       <colgroup>
-        <col style="width:4%"><col style="width:10%"><col style="width:31%"><col style="width:6%">
-        <col style="width:6%"><col style="width:10%"><col style="width:8%">
-        <col style="width:18%"><col style="width:7%">
+        <col style="width:4%"><col style="width:7%"><col style="width:38%"><col style="width:5%">
+        <col style="width:5%"><col style="width:10%"><col style="width:6%">
+        <col style="width:15%"><col style="width:6%">
       </colgroup>
-      <tr><th>No</th><th>이름</th><th>주문 내역 <span style="font-weight:400;font-size:7.5pt">(메뉴 / 옵션 / 잔)</span></th><th>잔수</th><th>쿠폰</th><th>결제금액</th><th>배달 교시</th><th>배달 위치</th><th>입금확인</th></tr>
+      <tr><th>No</th><th>이름</th><th>주문 내역 <span style="font-weight:400;font-size:7.5pt">(메뉴 / 옵션 / 잔)</span></th><th class="br">잔수</th><th>쿠폰</th><th class="br">결제
+금액</th><th class="br">배달
+교시</th><th class="br">배달
+위치</th><th class="br">입금
+확인</th></tr>
       ${rows}
       <tr class="total"><td colspan="3">합계</td><td>${cups}</td><td></td><td>${pay.toLocaleString()}원</td><td colspan="3">쿠폰할인 ${disc.toLocaleString()}원 포함 시 ${raw.toLocaleString()}원</td></tr>
     </table>
