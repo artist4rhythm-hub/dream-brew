@@ -133,6 +133,32 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 
 .hint{font-size:.76rem;color:var(--mocha)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+/* 교시 슬롯 */
+.slot-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.slot-row input[type=text]{flex:1.4;min-width:90px}
+.slot-row input[type=number]{flex:1;min-width:80px}
+.slot-usage{font-size:.76rem;color:var(--mocha);min-width:88px;text-align:right}
+.slot-usage b{color:var(--gold)}
+.slot-usage.full b{color:var(--hot)}
+.week-pick{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.88rem}
+.week-pick select{flex:1;min-width:160px}
+/* 얼음 옵션 */
+.ice-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.ice-row input{flex:1}
+/* 메시지 */
+.msg-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
+.msg-card.review{border-left:4px solid var(--sage)}
+.msg-card.note{border-left:4px solid var(--dream)}
+.msg-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.msg-who{font-weight:700;font-size:.92rem}
+.msg-when{font-size:.72rem;color:var(--mocha)}
+.msg-kind{font-size:.7rem;font-weight:700;border-radius:6px;padding:2px 8px}
+.msg-kind.review{background:var(--sage-soft);color:var(--sage)}
+.msg-kind.note{background:var(--dream-soft);color:#B4636D}
+.msg-body{font-size:.9rem;margin-top:8px;line-height:1.6;white-space:pre-wrap}
+.msg-meta{font-size:.74rem;color:var(--mocha);margin-top:6px}
+.stars{color:var(--gold);font-size:.9rem;letter-spacing:2px}
 
 /* ── 관리자 로그인 ── */
 #loginGate{flex:1;display:flex;align-items:center;justify-content:center;padding:30px 20px}
@@ -260,6 +286,8 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
     <button class="tab" data-p="p-make">☕ 제조 준비</button>
     <button class="tab" data-p="p-route">🚶 배달 동선</button>
     <button class="tab" data-p="p-coupon">🎟 쿠폰 관리</button>
+    <button class="tab" data-p="p-week">📅 주차별 일정</button>
+    <button class="tab" data-p="p-msg">💬 후기·메시지</button>
     <button class="tab" data-p="p-members">👥 명단 관리</button>
     <button class="tab" data-p="p-set">⚙️ 설정</button>
     <button class="tab super-only" data-p="p-super">👑 시스템 관리</button>
@@ -359,6 +387,19 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <div class="set-row"><label>예금주</label><input id="setHolder" value="장선진"></div>
       </div>
       <div class="set-group">
+        <h4>🧊 얼음 옵션 (ICE 음료 선택지)</h4>
+        <div id="iceOptList"></div>
+        <button class="btn line sm" style="margin-top:6px" onclick="addIceRow()">＋ 옵션 추가</button>
+        <p class="hint">주문자가 ICE 음료를 담을 때 한 잔마다 선택합니다. (예: 얼음 보통 / 얼음 적게 / 얼음 빼고)
+        비워 두면 옵션 선택 없이 주문됩니다.</p>
+      </div>
+      <div class="set-group">
+        <h4>✏️ 주문 페이지 안내 문구</h4>
+        <div class="set-row"><label>메뉴 제목</label><input id="setMenuTitle" placeholder="오늘의 메뉴"></div>
+        <div class="set-row"><label>메뉴 설명</label><input id="setMenuDesc" placeholder="이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다."></div>
+        <p class="hint">주문자가 메뉴 화면에서 보게 될 문구입니다.</p>
+      </div>
+      <div class="set-group">
         <h4>📖 메뉴 · 가격</h4>
         <div id="menuSet"></div>
         <button class="btn line sm" style="margin-top:6px" onclick="addMenuRow()">＋ 메뉴 추가</button>
@@ -366,6 +407,49 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
       <button class="btn" style="width:100%" onclick="saveSettings()">설정 저장</button>
     </section>
 
+
+
+    <!-- ═══ 주차별 일정 ═══ -->
+    <section class="panel" id="p-week">
+      <div class="week-pick">
+        <span>📅 주차 선택</span>
+        <select id="wkSel"></select>
+        <button class="btn sm" onclick="loadWeekPlan()">불러오기</button>
+      </div>
+      <div class="set-group">
+        <h4>🧾 이번 주 주문 마감</h4>
+        <div class="set-row">
+          <label>마감 일시</label>
+          <input type="date" id="wpDeadDate">
+          <input type="time" id="wpDeadTime" value="16:00">
+        </div>
+        <p class="hint">이 주차에만 적용됩니다. (기본 설정과 다르게 할 수 있어요)</p>
+      </div>
+      <div class="set-group">
+        <h4>🚶 배달 일정 · 교시별 정원</h4>
+        <div class="set-row">
+          <label>배달 날짜</label>
+          <input type="date" id="wpDeliverDate">
+        </div>
+        <div id="slotList" style="margin-top:10px"></div>
+        <button class="btn line sm" onclick="addSlotRow()">＋ 교시 추가</button>
+        <p class="hint">교시 이름(예: 2교시)과 최대 잔 수를 정하면, 주문자가 배달받을 교시를 선택합니다.
+        정원이 다 차면 그 교시는 선택할 수 없게 됩니다.</p>
+      </div>
+      <button class="btn" style="width:100%" onclick="saveWeekPlan()">이 주차 일정 저장</button>
+    </section>
+
+    <!-- ═══ 후기 · 메시지 ═══ -->
+    <section class="panel" id="p-msg">
+      <div class="toolbar">
+        <select id="msgFilter" style="padding:8px 12px;font-size:.84rem" onchange="renderMsgs()">
+          <option value="all">전체 보기</option>
+          <option value="review">이용 후기만</option>
+          <option value="note">관리자 메시지만</option>
+        </select>
+      </div>
+      <div id="msgList"><p class="hint">불러오는 중…</p></div>
+    </section>
 
     <!-- ═══ 명단 관리 ═══ -->
     <section class="panel" id="p-members">
@@ -455,7 +539,13 @@ const DEFAULT_MENUS=[
  {id:'st',name:'딸기라떼',price:3000,temps:['ice']},
  {id:'hd',name:'꿈Brew커피',sub:'Hand-Drip',price:3000,temps:['ice','hot']},
 ];
-let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',menus:DEFAULT_MENUS,couponEventDone:false};
+let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
+  menus:DEFAULT_MENUS,couponEventDone:false,
+  iceOpts:['얼음 보통','얼음 적게','얼음 빼고'],
+  menuTitle:'오늘의 메뉴',
+  menuDesc:'이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다.'};
+let PLANS={};        // week -> {deadAt, deliverDate, slots:[{name,cap}]}
+let unsubMsgs=null, MSGS=[];
 let ADMIN=null, ORDERS=[], MEMBERS=[], unsubOrders=null, unsubOps=null, unsubLogs=null, curWeek=null;
 
 /* ═════════ 교직원 명단 시드 데이터 (2026 좌석 배치도) ═════════ */
@@ -640,6 +730,126 @@ async function bootData(){
   loadMembers();
   subscribeOps();
   subscribeLogs();
+  subscribeMsgs();
+  loadPlans();
+}
+
+/* ═════════ 주차별 일정 ═════════ */
+async function loadPlans(){
+  try{
+    const snap=await db.collection('plans').get();
+    PLANS={}; snap.docs.forEach(d=>PLANS[d.id]=d.data());
+  }catch(e){ console.error(e); }
+  fillWeekSelect();
+}
+function fillWeekSelect(){
+  const sel=document.getElementById('wkSel');
+  const cur=sel.value;
+  const opts=[...document.getElementById('weekSel').options].map(o=>({v:o.value,t:o.text}));
+  sel.innerHTML=opts.map(o=>`<option value="${o.v}">${o.t}</option>`).join('');
+  sel.value=cur&&opts.some(o=>o.v===cur)?cur:(document.getElementById('weekSel').value||opts[0]?.v);
+  loadWeekPlan();
+}
+function slotUsage(week,slotName){
+  return ORDERS.filter(o=>!o.canceled&&o.week===week&&o.slot===slotName)
+               .reduce((s,o)=>s+o.cups,0);
+}
+function addSlotRow(name,cap){
+  const box=document.getElementById('slotList');
+  const row=document.createElement('div'); row.className='slot-row';
+  row.innerHTML=`
+    <input type="text" value="${name||''}" placeholder="교시 이름 (예: 2교시)" data-f="name">
+    <input type="number" value="${cap!=null?cap:20}" min="1" step="1" data-f="cap" title="최대 잔 수">
+    <span style="font-size:.78rem;color:var(--mocha)">잔까지</span>
+    <span class="slot-usage" data-f="use"></span>
+    <button class="btn line sm" onclick="this.parentElement.remove()">✕</button>`;
+  box.appendChild(row);
+  updateSlotUsage();
+}
+function updateSlotUsage(){
+  const week=document.getElementById('wkSel').value;
+  document.querySelectorAll('#slotList .slot-row').forEach(r=>{
+    const name=r.querySelector('[data-f=name]').value.trim();
+    const cap=Number(r.querySelector('[data-f=cap]').value)||0;
+    const el=r.querySelector('[data-f=use]');
+    if(!name){ el.textContent=''; return; }
+    const used=slotUsage(week,name);
+    el.innerHTML=`현재 <b>${used}</b>/${cap}잔`;
+    el.classList.toggle('full',cap>0&&used>=cap);
+  });
+}
+function loadWeekPlan(){
+  const week=document.getElementById('wkSel').value;
+  if(!week) return;
+  const p=PLANS[week]||{};
+  document.getElementById('wpDeadDate').value=p.deadDate||week;
+  document.getElementById('wpDeadTime').value=p.deadTime||SETTINGS.deadlineTime||'16:00';
+  // 기본 배달일 = 마감 다음날
+  let dv=p.deliverDate;
+  if(!dv){ const [y,m,d]=week.split('-').map(Number); const dt=new Date(y,m-1,d+1);
+    dv=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+  document.getElementById('wpDeliverDate').value=dv;
+  const box=document.getElementById('slotList'); box.innerHTML='';
+  const slots=p.slots&&p.slots.length?p.slots:[{name:'2교시',cap:20},{name:'3교시',cap:20}];
+  slots.forEach(s=>addSlotRow(s.name,s.cap));
+}
+async function saveWeekPlan(){
+  const week=document.getElementById('wkSel').value;
+  const slots=[...document.querySelectorAll('#slotList .slot-row')].map(r=>({
+    name:r.querySelector('[data-f=name]').value.trim(),
+    cap:Number(r.querySelector('[data-f=cap]').value)||0
+  })).filter(s=>s.name&&s.cap>0);
+  const names=slots.map(s=>s.name);
+  if(new Set(names).size!==names.length){ alert('교시 이름이 중복되었습니다.'); return; }
+  const data={
+    deadDate:document.getElementById('wpDeadDate').value,
+    deadTime:document.getElementById('wpDeadTime').value||'16:00',
+    deliverDate:document.getElementById('wpDeliverDate').value,
+    slots
+  };
+  if(!data.deadDate||!data.deliverDate){ alert('마감 일시와 배달 날짜를 입력해 주세요.'); return; }
+  try{
+    await db.collection('plans').doc(week).set(data,{merge:true});
+    PLANS[week]=data;
+    alert('이 주차 일정이 저장되었습니다. 주문 페이지에 바로 반영됩니다.');
+    updateSlotUsage();
+  }catch(e){ alert('저장 실패'); console.error(e); }
+}
+
+/* ═════════ 후기 · 메시지 ═════════ */
+function subscribeMsgs(){
+  if(unsubMsgs)unsubMsgs();
+  unsubMsgs=db.collection('messages').orderBy('at','desc').limit(80).onSnapshot(snap=>{
+    MSGS=snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderMsgs();
+  },e=>console.error(e));
+}
+function renderMsgs(){
+  const f=document.getElementById('msgFilter').value;
+  const box=document.getElementById('msgList');
+  const pool=MSGS.filter(m=>f==='all'||m.kind===f);
+  if(!pool.length){ box.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">아직 받은 내용이 없습니다.</p>'; return; }
+  box.innerHTML='';
+  pool.forEach(m=>{
+    const t=m.at?new Date(m.at.seconds*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    const stars=m.rating?`<span class="stars">${'★'.repeat(m.rating)}${'☆'.repeat(5-m.rating)}</span>`:'';
+    box.insertAdjacentHTML('beforeend',`
+      <div class="msg-card ${m.kind}">
+        <div class="msg-head">
+          <span class="msg-who">${m.name} 선생님 <span class="msg-kind ${m.kind}">${m.kind==='review'?'이용 후기':'메시지'}</span></span>
+          <span class="msg-when">${t}</span>
+        </div>
+        ${stars}
+        <div class="msg-body">${(m.text||'').replace(/</g,'&lt;')}</div>
+        ${m.orderInfo?`<div class="msg-meta">📦 ${m.orderInfo}</div>`:''}
+        <div style="margin-top:8px"><button class="del-btn" onclick="deleteMsg('${m.id}')">삭제</button></div>
+      </div>`);
+  });
+}
+async function deleteMsg(id){
+  if(!confirm('이 내용을 삭제할까요?')) return;
+  try{ await db.collection('messages').doc(id).delete(); }
+  catch(e){ alert('삭제 실패'); console.error(e); }
 }
 
 /* ═════════ 주차 ═════════ */
@@ -675,6 +885,7 @@ async function setupWeeks(){
   document.getElementById('weekChip').textContent=
     `${next.getMonth()+1}/${next.getDate()}(${DAYNAMES[next.getDay()]}) ${SETTINGS.deadlineTime} 마감`;
   subscribeOrders(sel.value);
+  if(Object.keys(PLANS).length||document.getElementById('wkSel')) fillWeekSelect();
 }
 function subscribeOrders(week){
   curWeek=week;
@@ -683,6 +894,7 @@ function subscribeOrders(week){
     ORDERS=snap.docs.map(d=>({id:d.id,...d.data()}));
     ORDERS.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
     renderOrders(); renderMake(); renderRoute();
+    if(document.getElementById('slotList').children.length) updateSlotUsage();
   },e=>console.error(e));
 }
 
@@ -697,7 +909,7 @@ document.querySelectorAll('.tab').forEach(t=>{
 });
 
 /* ═════════ 주문 취합 ═════════ */
-function itemsText(o){ return (o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()})×${i.q}`).join(', '); }
+function itemsText(o){ return (o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()}${i.opt?', '+i.opt:''})×${i.q}`).join(', '); }
 function orderCardHTML(o,doneStyle){
   const payBadge = o.payByCoupon
     ? `<span class="badge coupon">쿠폰 전액 결제</span>`
@@ -785,7 +997,7 @@ function toggleField(id,field,el){
 function makeAgg(){
   const agg={};
   ORDERS.filter(o=>!o.canceled).forEach(o=>(o.items||[]).forEach(i=>{
-    const k=i.name+'|'+i.t; agg[k]=(agg[k]||0)+i.q;
+    const k=i.name+'|'+i.t+'|'+(i.opt||''); agg[k]=(agg[k]||0)+i.q;
   }));
   return agg;
 }
@@ -793,11 +1005,12 @@ function renderMake(){
   const grid=document.getElementById('makeGrid'); grid.innerHTML='';
   let total=0;
   Object.entries(makeAgg()).sort((a,b)=>b[1]-a[1]).forEach(([k,q])=>{
-    const [name,t]=k.split('|'); total+=q;
+    const [name,t,opt]=k.split('|'); total+=q;
     grid.insertAdjacentHTML('beforeend',`
       <div class="make-card">
         <div class="mn">${name}</div>
         <span class="mt ${t}">${t.toUpperCase()}</span>
+        ${opt?`<div style="font-size:.7rem;color:var(--mocha)">${opt}</div>`:''}
         <div class="mv">${q}<span style="font-size:.8rem">잔</span></div>
       </div>`);
   });
@@ -807,7 +1020,9 @@ function renderMake(){
 /* ═════════ 배달 동선 ═════════ */
 function renderRoute(){
   const byLoc={};
-  ORDERS.filter(o=>!o.canceled&&!o.delivered).forEach(o=>{ (byLoc[o.loc]=byLoc[o.loc]||[]).push(o); });
+  ORDERS.filter(o=>!o.canceled&&!o.delivered).forEach(o=>{
+    const key=(o.slot?o.slot+' · ':'')+o.loc;
+    (byLoc[key]=byLoc[key]||[]).push(o); });
   const list=document.getElementById('routeList'); list.innerHTML='';
   if(!ORDERS.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">이 주차에는 아직 주문이 없습니다.</p>';
   Object.entries(byLoc).forEach(([loc,arr])=>{
@@ -896,6 +1111,13 @@ function subscribeLogs(){
 }
 
 /* ═════════ 설정 ═════════ */
+function addIceRow(v){
+  const box=document.getElementById('iceOptList');
+  const row=document.createElement('div'); row.className='ice-row';
+  row.innerHTML=`<input type="text" value="${v||''}" placeholder="예: 얼음 적게">
+    <button class="btn line sm" onclick="this.parentElement.remove()">✕</button>`;
+  box.appendChild(row);
+}
 function fillSettingsUI(){
   document.getElementById('setDay').value=String(SETTINGS.deadlineDay??4);
   document.getElementById('setTime').value=SETTINGS.deadlineTime||'16:00';
@@ -906,6 +1128,10 @@ function fillSettingsUI(){
   document.getElementById('setPauseFrom').value=SETTINGS.pauseFrom||'';
   document.getElementById('setPauseUntil').value=SETTINGS.pauseUntil||'';
   document.getElementById('setPauseMsg').value=SETTINGS.pauseMsg||'';
+  document.getElementById('setMenuTitle').value=SETTINGS.menuTitle||'';
+  document.getElementById('setMenuDesc').value=SETTINGS.menuDesc||'';
+  const ice=document.getElementById('iceOptList'); ice.innerHTML='';
+  (SETTINGS.iceOpts||[]).forEach(v=>addIceRow(v));
   const box=document.getElementById('menuSet'); box.innerHTML='';
   (SETTINGS.menus||DEFAULT_MENUS).forEach(m=>addMenuRow(m));
 }
@@ -939,6 +1165,9 @@ async function saveSettings(){
     pauseFrom:document.getElementById('setPauseFrom').value||'',
     pauseUntil:document.getElementById('setPauseUntil').value||'',
     pauseMsg:document.getElementById('setPauseMsg').value.trim(),
+    menuTitle:document.getElementById('setMenuTitle').value.trim()||'오늘의 메뉴',
+    menuDesc:document.getElementById('setMenuDesc').value.trim(),
+    iceOpts:[...document.querySelectorAll('#iceOptList input')].map(i=>i.value.trim()).filter(Boolean),
     menus
   };
   try{
@@ -1035,7 +1264,7 @@ function printLabels(){
   valid.forEach(o=>{
     (o.items||[]).forEach(it=>{
       for(let k=0;k<it.q;k++){
-        cups.push({name:o.name,ext:o.ext,loc:o.loc,menu:it.name,temp:it.t});
+        cups.push({name:o.name,ext:o.ext,loc:o.loc,menu:it.name,temp:it.t,opt:it.opt||'',slot:o.slot||''});
       }
     });
   });
@@ -1055,7 +1284,8 @@ function printLabels(){
         <span class="lb-temp ${c.temp}">${c.temp==='ice'?'ICE ❄':'HOT ♨'}</span>
       </div>
       <div class="lb-menu">${c.menu}${idx}</div>
-      <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?` · 내선 ${c.ext}`:''}</div>
+      ${c.opt?`<div style="font-size:8.5pt;color:#5573a8;font-weight:700;margin-top:1mm">🧊 ${c.opt}</div>`:''}
+      <div class="lb-loc">📍 <b>${c.loc}</b>${c.ext?` · 내선 ${c.ext}`:''}${c.slot?`<br>🕐 ${c.slot}`:''}</div>
     </div>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
@@ -1071,10 +1301,10 @@ function printMake(){
   const th=weekDateObj(); const fr=new Date(th); fr.setDate(th.getDate()+1);
   let total=0;
   const cards=Object.entries(makeAgg()).sort((a,b)=>b[1]-a[1]).map(([k,q])=>{
-    const [name,t]=k.split('|'); total+=q;
+    const [name,t,opt]=k.split('|'); total+=q;
     return `<div class="pm-card">
       <div class="pm-name">${name}</div>
-      <div class="pm-temp ${t}">${t==='ice'?'ICE ❄':'HOT ♨'}</div>
+      <div class="pm-temp ${t}">${t==='ice'?'ICE ❄':'HOT ♨'}${opt?' · '+opt:''}</div>
       <div class="pm-qty">${q}<small>잔</small></div>
       <div class="pm-checks">${'▢ '.repeat(q).trim()}</div>
     </div>`;
@@ -1086,7 +1316,7 @@ function printMake(){
       <td class="name-cell">${o.name}</td>
       <td class="menu-cell">${menuLines}</td>
       <td>${o.cups}</td>
-      <td class="loc-cell">${o.loc}</td>
+      <td class="loc-cell">${o.loc}${o.slot?`<br><b style="color:#2d6a4f">${o.slot}</b>`:''}</td>
       <td style="font-size:12pt">▢</td><td style="font-size:12pt">▢</td>
       <td></td>
     </tr>`;
@@ -1127,8 +1357,8 @@ function printSheet(){
     </tr>`;
   });
   const makeRows=Object.entries(makeAgg()).sort((a,b)=>b[1]-a[1]).map(([k,q])=>{
-    const [name,t]=k.split('|');
-    return `<tr><td class="l">${name}</td><td>${t.toUpperCase()}</td><td>${q}</td></tr>`;
+    const [name,t,opt]=k.split('|');
+    return `<tr><td class="l">${name}${opt?' · '+opt:''}</td><td>${t.toUpperCase()}</td><td>${q}</td></tr>`;
   }).join('');
   document.getElementById('printArea').innerHTML=`
     <div class="pt-title">꿈Brew 주간 주문 취합표</div>

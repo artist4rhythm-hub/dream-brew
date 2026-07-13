@@ -91,6 +91,36 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .my-card.canceled{opacity:.6;background:#FAF4F1}
 .cancel-btn{margin-top:10px;width:100%;padding:9px;border-radius:10px;font-size:.82rem;
   background:transparent;border:1px solid #E7D2CB;color:#B4533C;font-weight:700}
+/* 얼음 옵션 (한 잔마다) */
+.ice-picks{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none}
+.ice-picks.show{display:block}
+.ice-pick{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem}
+.ice-pick .lbl{color:var(--mocha);white-space:nowrap}
+.ice-pick select{flex:1;font-family:inherit;font-size:.82rem;padding:6px 8px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;color:var(--brew-deep);max-width:150px}
+/* 배달 교시 선택 */
+.slot-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.slot-btn{display:flex;justify-content:space-between;align-items:center;width:100%;
+  background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;
+  font-size:.95rem;color:var(--brew-deep);font-family:inherit;text-align:left}
+.slot-btn.sel{border-color:var(--sage);background:var(--sage-soft);font-weight:700}
+.slot-btn:disabled{opacity:.45;cursor:not-allowed}
+.slot-cap{font-size:.76rem;color:var(--mocha);font-weight:400}
+.slot-cap.full{color:var(--hot);font-weight:700}
+.slot-cap b{color:var(--gold)}
+/* 후기 */
+.rv-btn{margin-top:8px;width:100%;padding:9px;border-radius:10px;font-size:.82rem;
+  background:var(--sage-soft);border:1px solid #DCE8D6;color:var(--sage);font-weight:700}
+.rv-form{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none}
+.rv-form.show{display:block}
+.stars-pick{display:flex;gap:4px;justify-content:center;margin-bottom:8px}
+.stars-pick button{font-size:1.5rem;background:none;border:none;color:#DDD3C0;padding:2px;line-height:1}
+.stars-pick button.on{color:var(--gold)}
+textarea{width:100%;font-family:inherit;font-size:.88rem;padding:10px 12px;border:1.5px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--brew-deep);resize:vertical;min-height:70px}
+textarea:focus{outline:none;border-color:var(--dream)}
+.sent-note{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:10px;padding:10px;
+  font-size:.8rem;color:var(--sage);text-align:center;margin-top:8px}
 
 main{flex:1;padding:20px 20px 120px}
 .screen{display:none}
@@ -353,8 +383,8 @@ button{font-family:inherit;cursor:pointer;border:none}
           <button class="myorders-btn" onclick="openMyOrders()">📋 내 주문</button>
         </span>
       </div>
-      <h2 class="step-title">오늘의 메뉴</h2>
-      <p class="step-desc">이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다.</p>
+      <h2 class="step-title" id="menuTitle">오늘의 메뉴</h2>
+      <p class="step-desc" id="menuDesc"></p>
       <div id="menuList"></div>
     </section>
 
@@ -383,8 +413,19 @@ button{font-family:inherit;cursor:pointer;border:none}
         <div class="total-row grand"><span>결제 금액</span><em id="sumGrand"></em></div>
       </div>
       <div style="margin-top:18px">
-        <button class="btn" onclick="go('scr-seat')">배달 위치 확인하기</button>
+        <button class="btn" onclick="goAfterCart()">다음 단계로</button>
         <button class="btn ghost" onclick="go('scr-menu')">← 메뉴 더 담기</button>
+      </div>
+    </section>
+
+    <!-- ═══ 3.5 배달 교시 선택 ═══ -->
+    <section class="screen" id="scr-slot">
+      <h2 class="step-title">언제 받으시겠어요?</h2>
+      <p class="step-desc" id="slotDesc">배달받을 교시를 선택해 주세요.</p>
+      <div class="slot-list" id="slotList"></div>
+      <div style="margin-top:18px">
+        <button class="btn" id="slotNextBtn" disabled onclick="go('scr-seat')">배달 위치 확인하기</button>
+        <button class="btn ghost" onclick="go('scr-cart')">← 주문서로</button>
       </div>
     </section>
 
@@ -444,6 +485,13 @@ button{font-family:inherit;cursor:pointer;border:none}
       <h2 class="step-title">내 주문 현황</h2>
       <p class="step-desc">최근 주문 내역과 진행 상태입니다.</p>
       <div id="myOrderList"><p class="hint">불러오는 중…</p></div>
+      <div class="card" style="margin-top:18px">
+        <b style="font-size:.92rem">💬 담당 선생님께 메시지 보내기</b>
+        <p class="hint" style="text-align:left;margin:6px 0 10px">건의사항이나 궁금한 점을 자유롭게 남겨 주세요.</p>
+        <textarea id="noteText" placeholder="예: 다음에는 디카페인 옵션도 있으면 좋겠어요!"></textarea>
+        <button class="btn" style="margin-top:8px" onclick="sendNote()">메시지 보내기</button>
+        <div id="noteSent"></div>
+      </div>
       <button class="btn ghost" onclick="go('scr-menu')">← 메뉴로 돌아가기</button>
     </section>
   </main>
@@ -480,7 +528,12 @@ const DEFAULT_MENUS=[
  {id:'st',name:'딸기라떼',price:3000,temps:['ice']},
  {id:'hd',name:'꿈Brew커피',sub:'Hand-Drip',price:3000,temps:['ice','hot']},
 ];
-let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',menus:DEFAULT_MENUS};
+let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
+  menus:DEFAULT_MENUS,iceOpts:[],menuTitle:'오늘의 메뉴',menuDesc:''};
+let PLAN=null;        // 이번 주차 일정 {deadDate,deadTime,deliverDate,slots:[{name,cap}]}
+let slotUsed={};      // 교시별 이미 주문된 잔 수
+let chosenSlot=null;
+const iceSel={};      // key: menuId_ice_index -> 옵션
 let MENUS=DEFAULT_MENUS;
 let TABS=['본관·행정','제1연구실','제2연구실','제3연구실','제4연구실','제5연구실','기타','통합교육실'];
 
@@ -491,7 +544,7 @@ const M=id=>MENUS.find(m=>m.id===id);
 const pad=n=>String(n).padStart(2,'0');
 
 /* ═════════ 마감/주차 계산 ═════════ */
-function nextDeadline(){
+function baseDeadline(){
   const [hh,mm]=(SETTINGS.deadlineTime||'16:00').split(':').map(Number);
   const day=SETTINGS.deadlineDay??4;
   const now=new Date(), d=new Date(now);
@@ -500,8 +553,16 @@ function nextDeadline(){
   if(d<=now) d.setDate(d.getDate()+7);
   return d;
 }
+function nextDeadline(){
+  if(PLAN&&PLAN.deadDate){
+    const [y,m,d]=PLAN.deadDate.split('-').map(Number);
+    const [hh,mm]=(PLAN.deadTime||'16:00').split(':').map(Number);
+    return new Date(y,m-1,d,hh,mm,0,0);
+  }
+  return baseDeadline();
+}
 function weekKey(){
-  const d=nextDeadline();
+  const d=baseDeadline();
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
 const DAYNAMES=['일','월','화','수','목','금','토'];
@@ -538,6 +599,19 @@ async function init(){
     if(s.exists) SETTINGS={...SETTINGS,...s.data()};
   }catch(e){ console.error('settings',e); }
   MENUS=SETTINGS.menus||DEFAULT_MENUS;
+  const wk=weekKey();
+  try{
+    const pd=await db.collection('plans').doc(wk).get();
+    if(pd.exists) PLAN=pd.data();
+  }catch(e){ console.error('plan',e); }
+  try{
+    const os=await db.collection('orders').where('week','==',wk).get();
+    slotUsed={};
+    os.docs.forEach(d=>{ const o=d.data();
+      if(!o.canceled&&o.slot) slotUsed[o.slot]=(slotUsed[o.slot]||0)+o.cups; });
+  }catch(e){ console.error('slots',e); }
+  document.getElementById('menuTitle').textContent=SETTINGS.menuTitle||'오늘의 메뉴';
+  document.getElementById('menuDesc').textContent=SETTINGS.menuDesc||'';
   document.getElementById('accountNum').textContent=`${SETTINGS.bank} ${SETTINGS.acct}`;
   document.getElementById('accountHolder').textContent=`예금주 · ${SETTINGS.holder} (꿈Brew)`;
   renderMenu();
@@ -565,8 +639,42 @@ async function init(){
 }
 
 /* ═════════ 화면 전환 ═════════ */
+function goAfterCart(){
+  if(PLAN&&PLAN.slots&&PLAN.slots.length) go('scr-slot');
+  else go('scr-seat');
+}
+function renderSlots(){
+  const box=document.getElementById('slotList'); box.innerHTML='';
+  const need=cupCount();
+  if(PLAN&&PLAN.deliverDate){
+    const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    document.getElementById('slotDesc').innerHTML=
+      `<b>${m}/${d}(${DAYNAMES[dt.getDay()]})</b> 배달 예정입니다. 받으실 교시를 선택해 주세요.`;
+  }
+  (PLAN.slots||[]).forEach(s=>{
+    const used=slotUsed[s.name]||0;
+    const left=s.cap-used;
+    const full=left<need;
+    const b=document.createElement('button');
+    b.className='slot-btn'+(chosenSlot===s.name?' sel':'');
+    b.disabled=full;
+    b.innerHTML=`<span>${s.name}</span>
+      <span class="slot-cap ${full?'full':''}">${full?(left<=0?'마감되었어요':`남은 자리 ${left}잔`):`<b>${left}잔</b> 남음 · 정원 ${s.cap}잔`}</span>`;
+    b.onclick=()=>{
+      chosenSlot=s.name;
+      box.querySelectorAll('.slot-btn').forEach(x=>x.classList.remove('sel'));
+      b.classList.add('sel');
+      document.getElementById('slotNextBtn').disabled=false;
+    };
+    box.appendChild(b);
+  });
+  if(!(PLAN.slots||[]).length) box.innerHTML='<p class="hint">배달 교시가 아직 정해지지 않았습니다.</p>';
+  document.getElementById('slotNextBtn').disabled=!chosenSlot;
+}
 function go(id){
   if(id==='scr-cart') renderCart();
+  if(id==='scr-slot') renderSlots();
   if(id==='scr-seat') renderSeat();
   if(id==='scr-pay') renderPay();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -701,7 +809,8 @@ function renderMenu(){
         <span class="menu-name">${m.name}${m.sub?`<small>${m.sub}</small>`:''}</span>
         <span class="menu-price">${m.price.toLocaleString()}원</span>
       </div>
-      ${rows}`;
+      ${rows}
+      <div class="ice-picks" id="ice-${m.id}"></div>`;
     menuList.appendChild(card);
   });
 }
@@ -710,7 +819,29 @@ function chgQty(id,t,d){
   cart[key]=(cart[key]||0)+d;
   if(cart[key]<=0)delete cart[key];
   document.getElementById(`q-${id}-${t}`).textContent=cart[key]||0;
+  renderIcePicks(id);
   renderCartBar();
+}
+function renderIcePicks(id){
+  const opts=SETTINGS.iceOpts||[];
+  const box=document.getElementById(`ice-${id}`);
+  if(!box) return;
+  const n=cart[id+'_ice']||0;
+  if(!opts.length||n===0){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.classList.add('show');
+  let html='';
+  for(let i=0;i<n;i++){
+    const k=`${id}_${i}`;
+    const cur=iceSel[k]||opts[0];
+    html+=`<div class="ice-pick">
+      <span class="lbl">ICE ${n>1?(i+1)+'잔째':''} 얼음</span>
+      <select onchange="iceSel['${k}']=this.value">
+        ${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}
+      </select>
+    </div>`;
+    iceSel[k]=cur;
+  }
+  box.innerHTML=html;
 }
 function cupCount(){ return Object.values(cart).reduce((s,v)=>s+v,0); }
 function rawTotal(){
@@ -812,18 +943,37 @@ function updateOrderBtn(){
 async function submitOrder(){
   if(closedState().closed){ alert('지금은 주문을 받지 않습니다.'); return; }
   if(submitting) return;
+  if(PLAN&&PLAN.slots&&PLAN.slots.length){
+    const s=(PLAN.slots||[]).find(x=>x.name===chosenSlot);
+    if(!s){ alert('배달 교시를 선택해 주세요.'); go('scr-slot'); return; }
+    const used=slotUsed[chosenSlot]||0;
+    if(used+cupCount()>s.cap){
+      alert(`${chosenSlot} 정원이 방금 찼습니다. 다른 교시를 선택해 주세요.`);
+      chosenSlot=null; go('scr-slot'); return;
+    }
+  }
   submitting=true;
   const btn=document.getElementById('orderBtn');
   btn.disabled=true; btn.textContent='주문 접수 중…';
   const week=weekKey();
-  const items=Object.entries(cart).map(([k,q])=>{
+  const items=[];
+  Object.entries(cart).forEach(([k,q])=>{
     const [id,t]=k.split('_'); const m=M(id);
-    return {m:id,name:m.name,t,q,price:m.price};
+    if(t==='ice'&&(SETTINGS.iceOpts||[]).length){
+      const groups={};
+      for(let i=0;i<q;i++){ const o=iceSel[`${id}_${i}`]||SETTINGS.iceOpts[0];
+        groups[o]=(groups[o]||0)+1; }
+      Object.entries(groups).forEach(([opt,n])=>
+        items.push({m:id,name:m.name,t,q:n,price:m.price,opt}));
+    }else{
+      items.push({m:id,name:m.name,t,q,price:m.price});
+    }
   });
   const raw=rawTotal(),disc=discount(),pay=raw-disc;
   const order={
     week, memberId:user.id, name:user.name, ext:user.ext||'',
-    loc:seat, homeLoc:user.loc,
+    loc:seat, homeLoc:user.loc, slot:chosenSlot||'',
+    deliverDate:(PLAN&&PLAN.deliverDate)||'',
     items, cups:cupCount(), raw, discount:disc, pay,
     couponUsed:couponUse,
     selfPaid: pay===0 ? true : document.getElementById('paidCheck').checked,
@@ -846,6 +996,7 @@ async function submitOrder(){
       const oref=db.collection('orders').doc();
       tx.set(oref,order);
     });
+    if(chosenSlot) slotUsed[chosenSlot]=(slotUsed[chosenSlot]||0)+order.cups;
     user.coupons=(user.coupons||0)-couponUse;
     showTicket(order);
   }catch(e){
@@ -881,7 +1032,7 @@ async function openMyOrders(){
     arr.slice(0,20).forEach(o=>{
       const [y,m,d]=o.week.split('-').map(Number);
       const wkD=new Date(y,m-1,d);
-      const items=(o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()})×${i.q}`).join(', ');
+      const items=(o.items||[]).map(i=>`${i.name}(${i.t.toUpperCase()}${i.opt?', '+i.opt:''})×${i.q}`).join(', ');
       const payChip = o.payByCoupon ? '<span class="st on">쿠폰 전액 결제 ✓</span>'
         : (o.confirmed ? '<span class="st on">입금 확인 ✓</span>' : '<span class="st">입금 확인 대기</span>');
       const cancelable=!o.canceled&&!o.made&&!o.delivered;
@@ -897,15 +1048,69 @@ async function openMyOrders(){
             <span class="my-week">${m}/${d}(${DAYNAMES[wkD.getDay()]}) 마감분</span>
             <span class="my-pay">${o.pay.toLocaleString()}원${o.couponUsed?` · 쿠폰 ${o.couponUsed}잔`:''}</span>
           </div>
-          <div class="my-items">${items} · 총 ${o.cups}잔<br><small style="color:var(--mocha)">📍 ${o.loc}</small></div>
+          <div class="my-items">${items} · 총 ${o.cups}잔<br>
+            <small style="color:var(--mocha)">📍 ${o.loc}${o.slot?` · 🕐 ${o.slot}`:''}</small></div>
           <div class="my-status">${statusRow}</div>
           ${cancelable?`<button class="cancel-btn" onclick="cancelOrder('${o.id}')">이 주문 취소하기</button>`:''}
+          ${!o.canceled?`
+            <button class="rv-btn" onclick="toggleReview('${o.id}')">✍️ 이용 후기 남기기</button>
+            <div class="rv-form" id="rv-${o.id}">
+              <div class="stars-pick" id="st-${o.id}"></div>
+              <textarea id="rt-${o.id}" placeholder="음료는 어떠셨나요? 학생들에게 전할 응원의 말도 좋아요 :)"></textarea>
+              <button class="btn" style="margin-top:8px" onclick="sendReview('${o.id}','${items.replace(/'/g,"")}')">후기 보내기</button>
+            </div>`:''}
         </div>`);
     });
   }catch(e){
     console.error(e);
     box.innerHTML='<p class="hint">주문 내역을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p>';
   }
+}
+
+const rvStars={};
+function toggleReview(id){
+  const f=document.getElementById('rv-'+id);
+  const showing=f.classList.toggle('show');
+  if(showing&&!document.getElementById('st-'+id).children.length){
+    const box=document.getElementById('st-'+id);
+    rvStars[id]=5;
+    for(let i=1;i<=5;i++){
+      const b=document.createElement('button');
+      b.textContent='★'; b.className='on';
+      b.setAttribute('aria-label',i+'점');
+      b.onclick=()=>{ rvStars[id]=i;
+        [...box.children].forEach((x,j)=>x.classList.toggle('on',j<i)); };
+      box.appendChild(b);
+    }
+  }
+}
+async function sendReview(id,info){
+  const ta=document.getElementById('rt-'+id);
+  const text=ta.value.trim();
+  if(!text){ alert('후기 내용을 입력해 주세요.'); return; }
+  try{
+    await db.collection('messages').add({
+      kind:'review', name:user.name, memberId:user.id,
+      rating:rvStars[id]||5, text, orderId:id, orderInfo:info,
+      at:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    ta.value='';
+    document.getElementById('rv-'+id).innerHTML='<div class="sent-note">후기가 전달되었습니다. 감사합니다! 💛</div>';
+  }catch(e){ console.error(e); alert('전송에 실패했습니다. 다시 시도해 주세요.'); }
+}
+async function sendNote(){
+  const ta=document.getElementById('noteText');
+  const text=ta.value.trim();
+  if(!text){ alert('메시지를 입력해 주세요.'); return; }
+  try{
+    await db.collection('messages').add({
+      kind:'note', name:user.name, memberId:user.id, text,
+      at:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    ta.value='';
+    document.getElementById('noteSent').innerHTML='<div class="sent-note">메시지가 전달되었습니다 💌</div>';
+    setTimeout(()=>{document.getElementById('noteSent').innerHTML='';},4000);
+  }catch(e){ console.error(e); alert('전송에 실패했습니다.'); }
 }
 
 async function cancelOrder(id){
