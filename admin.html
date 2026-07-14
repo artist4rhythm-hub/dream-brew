@@ -261,6 +261,41 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 .lb-loc b{color:#1c5c40;font-weight:900}
 .lb-brand{position:absolute;bottom:1.6mm;right:3mm;font-size:6pt;color:#c9bba6;letter-spacing:.14em}
 .cut-note{font-size:8.5pt;color:#7a8a72;text-align:center;margin:2mm 0 3mm}
+/* 명단 개별 편집 */
+.mb-search{display:flex;gap:8px;margin-bottom:10px}
+.mb-search input{flex:1}
+.mb-list{max-height:52vh;overflow-y:auto;padding:2px}
+.mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#fff}
+.mb-info .nm{font-weight:700;font-size:.93rem}
+.mb-info .du{font-size:.74rem;color:var(--mocha);margin-left:6px;font-weight:400}
+.mb-info .lo{font-size:.78rem;color:var(--mocha);margin-top:2px}
+.mb-info .lo b{color:var(--sage);font-weight:700}
+.mb-edit{display:none;border:1.5px solid var(--dream);border-radius:10px;padding:14px;
+  margin-bottom:8px;background:var(--dream-soft)}
+.mb-edit.on{display:block}
+.mb-edit .set-row label{min-width:72px}
+.mb-edit input,.mb-edit select{background:#fff}
+.mb-actions{display:flex;gap:8px;margin-top:10px}
+.bulk-box{background:var(--cream);border:1px dashed var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.bulk-box.on{border-color:var(--sage);background:var(--sage-soft)}
+.mb-check{width:18px;height:18px;accent-color:var(--sage);flex:none;margin-right:2px}
+/* 후기 인쇄 */
+.rv-print{border:1.2px solid #cfdcd4;border-left:4px solid #8FAF7E;border-radius:3mm;
+  padding:4mm 5mm;margin-bottom:4mm;page-break-inside:avoid;background:#fbfdfa}
+.rv-print.note{border-left-color:#DE8E97;background:#fefafa}
+.rv-p-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  border-bottom:1px dotted #d6e0d9;padding-bottom:1.8mm;margin-bottom:2.2mm}
+.rv-p-who{font-size:11.5pt;font-weight:900;color:#2d2620}
+.rv-p-kind{font-size:8pt;font-weight:700;border-radius:3px;padding:1px 6px;margin-left:5px}
+.rv-p-kind.review{background:#eff4eb;color:#4c7a5d;border:.5px solid #cbdcc3}
+.rv-p-kind.note{background:#faeeef;color:#b4636d;border:.5px solid #eed4d7}
+.rv-p-when{font-size:8pt;color:#7a8a72;white-space:nowrap}
+.rv-p-stars{color:#B08434;font-size:11pt;letter-spacing:2px;margin-bottom:1.5mm}
+.rv-p-text{font-size:11pt;line-height:1.7;color:#1a1512;white-space:pre-wrap;word-break:keep-all}
+.rv-p-meta{font-size:8pt;color:#7a8a72;margin-top:2mm}
+.rv-stat{display:flex;gap:6mm;justify-content:center;margin:3mm 0 5mm;font-size:9.5pt;color:#4a5a50}
+.rv-stat b{color:#2d6a4f;font-size:12pt}
 @media print{ .label-grid{gap:4mm} }
 
 /* ═══ 가로 스크롤 힌트 ═══ */
@@ -483,6 +518,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
           <option value="review">이용 후기만</option>
           <option value="note">관리자 메시지만</option>
         </select>
+        <button class="btn gold sm" onclick="printMsgs()">🖨 후기 모아 인쇄 (학생 리뷰용)</button>
       </div>
       <div id="msgList"><p class="hint">불러오는 중…</p></div>
     </section>
@@ -506,6 +542,33 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint">양식 열 구성: 이름(필수) · 담당 · 배달위치 · 구역 · 내선 · 연락처뒤4자리<br>
         시트의 행 순서가 주문 페이지의 표시 순서가 되며, ‘구역’이 선택 탭으로 자동 생성됩니다.</p>
         <p class="hint" id="rosterStatus" style="color:var(--sage);font-weight:700"></p>
+      </div>
+      <div class="set-group">
+        <h4>✏️ 선생님 정보 · 자리 변경</h4>
+        <p class="hint" style="margin-bottom:10px">이름을 검색해 <b>[수정]</b>을 누르면 자리(배달 위치)·구역·담당·내선을 바로 바꿀 수 있습니다.
+        여러 명을 한 번에 옮기려면 체크 후 아래 <b>일괄 이동</b>을 사용하세요.</p>
+        <div class="mb-search">
+          <input type="search" id="mbSearch" placeholder="이름 검색 (예: 장선진)" oninput="renderMemberEdit()">
+          <button class="btn line sm" onclick="toggleBulk()">☑ 일괄 이동</button>
+        </div>
+        <div class="bulk-box" id="bulkBox" style="display:none">
+          <b style="font-size:.86rem">선택한 선생님을 이 자리로 이동</b>
+          <div class="set-row" style="margin-top:8px">
+            <label>배달 위치</label>
+            <input type="text" id="bulkLoc" list="locOptions" placeholder="예: 제1연구실(2층 서편)" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>구역(탭)</label>
+            <input type="text" id="bulkTab" list="tabOptions" placeholder="예: 제1연구실" style="flex:1">
+          </div>
+          <div class="mb-actions">
+            <button class="btn sm" onclick="applyBulkMove()">선택한 <b id="bulkCount">0</b>명 이동</button>
+            <button class="btn line sm" onclick="toggleBulk()">취소</button>
+          </div>
+        </div>
+        <datalist id="locOptions"></datalist>
+        <datalist id="tabOptions"></datalist>
+        <div class="mb-list" id="mbList"></div>
       </div>
       <div class="set-group">
         <h4>🔑 선생님 PIN 초기화</h4>
@@ -885,6 +948,41 @@ function renderMsgs(){
       </div>`);
   });
 }
+function printMsgs(){
+  const f=document.getElementById('msgFilter').value;
+  const pool=MSGS.filter(m=>f==='all'||m.kind===f);
+  if(!pool.length){ alert('인쇄할 내용이 없습니다.'); return; }
+  const reviews=pool.filter(m=>m.kind==='review');
+  const avg=reviews.length
+    ? (reviews.reduce((s,m)=>s+(m.rating||0),0)/reviews.length).toFixed(1) : null;
+  const cards=pool.map(m=>{
+    const t=m.at?new Date(m.at.seconds*1000).toLocaleString('ko-KR',
+      {year:'2-digit',month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    const stars=m.rating?`<div class="rv-p-stars">${'★'.repeat(m.rating)}${'☆'.repeat(5-m.rating)}</div>`:'';
+    return `<div class="rv-print ${m.kind}">
+      <div class="rv-p-head">
+        <span class="rv-p-who">${m.name} 선생님<span class="rv-p-kind ${m.kind}">${m.kind==='review'?'이용 후기':'메시지'}</span></span>
+        <span class="rv-p-when">${t}</span>
+      </div>
+      ${stars}
+      <div class="rv-p-text">${(m.text||'').replace(/</g,'&lt;')}</div>
+      ${m.orderInfo?`<div class="rv-p-meta">📦 ${m.orderInfo}</div>`:''}
+    </div>`;
+  }).join('');
+  const title=f==='review'?'꿈Brew 이용 후기':(f==='note'?'꿈Brew 받은 메시지':'꿈Brew 후기 · 메시지 모음');
+  document.getElementById('printArea').innerHTML=`
+    ${printHead(title)}
+    <div class="pt-sub">수원농생명과학고등학교 특수학급 실습카페 · ${new Date().toLocaleDateString('ko-KR')} 기준</div>
+    <div class="rv-stat">
+      <span>받은 글 <b>${pool.length}</b>건</span>
+      ${reviews.length?`<span>이용 후기 <b>${reviews.length}</b>건</span>`:''}
+      ${avg?`<span>평균 별점 <b>★ ${avg}</b></span>`:''}
+    </div>
+    ${cards}
+    <div class="cut-note" style="margin-top:6mm">— 선생님들이 학생들에게 보내주신 소중한 이야기입니다 —</div>`;
+  window.print();
+}
+
 async function deleteMsg(id){
   if(!confirm('이 내용을 삭제할까요?')) return;
   try{ await db.collection('messages').doc(id).delete(); }
@@ -1137,6 +1235,8 @@ async function loadMembers(){
     MEMBERS=snap.docs.map(d=>({id:d.id,...d.data()}));
   }catch(e){ console.error(e); }
   renderCoupon();
+  fillDatalists();
+  renderMemberEdit();
   const ev=document.getElementById('eventBtn');
   if(SETTINGS.couponEventDone){ ev.disabled=true; ev.textContent='✓ 이벤트 지급 완료'; }
 }
@@ -1499,6 +1599,108 @@ function printSheet(){
   window.print();
 }
 
+
+/* ═════════ 선생님 정보 · 자리 변경 ═════════ */
+let bulkMode=false, bulkSel=new Set(), editingId=null;
+
+function fillDatalists(){
+  const locs=[...new Set(MEMBERS.map(m=>m.loc).filter(Boolean))].sort();
+  const tabs=[...new Set(MEMBERS.map(m=>m.tab).filter(Boolean))].sort();
+  document.getElementById('locOptions').innerHTML=locs.map(v=>`<option value="${v}">`).join('');
+  document.getElementById('tabOptions').innerHTML=tabs.map(v=>`<option value="${v}">`).join('');
+}
+function toggleBulk(){
+  bulkMode=!bulkMode;
+  bulkSel.clear();
+  document.getElementById('bulkBox').style.display=bulkMode?'block':'none';
+  document.getElementById('bulkBox').classList.toggle('on',bulkMode);
+  editingId=null;
+  renderMemberEdit();
+}
+function renderMemberEdit(){
+  const q=document.getElementById('mbSearch').value.trim();
+  const list=document.getElementById('mbList'); list.innerHTML='';
+  if(!MEMBERS.length){ list.innerHTML='<p class="hint" style="padding:14px 0">명단이 비어 있습니다. 위에서 엑셀로 등록해 주세요.</p>'; return; }
+  const pool=q?MEMBERS.filter(m=>m.name.includes(q)||(m.loc||'').includes(q)||(m.duty||'').includes(q)):MEMBERS;
+  if(!pool.length){ list.innerHTML='<p class="hint" style="padding:14px 0">검색 결과가 없습니다.</p>'; return; }
+  pool.forEach(m=>{
+    if(editingId===m.id){
+      list.insertAdjacentHTML('beforeend',`
+        <div class="mb-edit on">
+          <b style="font-size:.92rem">${m.name} 선생님 정보 수정</b>
+          <div class="set-row" style="margin-top:10px">
+            <label>배달 위치</label>
+            <input type="text" id="ed-loc" list="locOptions" value="${(m.loc||'').replace(/"/g,'&quot;')}" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>구역(탭)</label>
+            <input type="text" id="ed-tab" list="tabOptions" value="${(m.tab||'').replace(/"/g,'&quot;')}" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>담당</label>
+            <input type="text" id="ed-duty" value="${(m.duty||'').replace(/"/g,'&quot;')}" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>내선</label>
+            <input type="text" id="ed-ext" value="${m.ext||''}" style="flex:1">
+          </div>
+          <div class="mb-actions">
+            <button class="btn sm" onclick="saveMember('${m.id}')">저장</button>
+            <button class="btn line sm" onclick="editingId=null;renderMemberEdit()">취소</button>
+          </div>
+        </div>`);
+      return;
+    }
+    list.insertAdjacentHTML('beforeend',`
+      <div class="mb-row">
+        ${bulkMode?`<input type="checkbox" class="mb-check" ${bulkSel.has(m.id)?'checked':''} onchange="toggleBulkSel('${m.id}',this)">`:''}
+        <span class="mb-info">
+          <span class="nm">${m.name}<span class="du">${m.duty||''}</span></span>
+          <div class="lo">📍 <b>${m.loc||'-'}</b> · ${m.tab||'-'} · 내선 ${m.ext||'-'}</div>
+        </span>
+        ${bulkMode?'':`<button class="btn line sm" onclick="editingId='${m.id}';renderMemberEdit()">수정</button>`}
+      </div>`);
+  });
+  document.getElementById('bulkCount').textContent=bulkSel.size;
+}
+function toggleBulkSel(id,el){
+  if(el.checked) bulkSel.add(id); else bulkSel.delete(id);
+  document.getElementById('bulkCount').textContent=bulkSel.size;
+}
+async function saveMember(id){
+  const m=MEMBERS.find(x=>x.id===id);
+  const loc=document.getElementById('ed-loc').value.trim();
+  const tab=document.getElementById('ed-tab').value.trim()||'기타';
+  const duty=document.getElementById('ed-duty').value.trim();
+  const ext=document.getElementById('ed-ext').value.trim();
+  if(!loc){ alert('배달 위치를 입력해 주세요.'); return; }
+  try{
+    await db.collection('members').doc(id).update({loc,tab,duty,ext});
+    Object.assign(m,{loc,tab,duty,ext});
+    editingId=null;
+    fillDatalists();
+    renderMemberEdit();
+    alert(`${m.name} 선생님 정보가 변경되었습니다.\n다음 주문부터 새 위치로 배달됩니다.`);
+  }catch(e){ alert('저장 실패'); console.error(e); }
+}
+async function applyBulkMove(){
+  const loc=document.getElementById('bulkLoc').value.trim();
+  const tab=document.getElementById('bulkTab').value.trim();
+  if(!bulkSel.size){ alert('이동할 선생님을 선택해 주세요.'); return; }
+  if(!loc){ alert('이동할 배달 위치를 입력해 주세요.'); return; }
+  const names=[...bulkSel].map(id=>MEMBERS.find(m=>m.id===id)?.name).filter(Boolean);
+  if(!confirm(`${names.length}명을 아래 자리로 이동할까요?\n\n📍 ${loc}\n\n대상: ${names.join(', ')}`)) return;
+  try{
+    const batch=db.batch();
+    const upd={loc}; if(tab) upd.tab=tab;
+    bulkSel.forEach(id=>batch.update(db.collection('members').doc(id),upd));
+    await batch.commit();
+    bulkSel.forEach(id=>{ const m=MEMBERS.find(x=>x.id===id); if(m) Object.assign(m,upd); });
+    toggleBulk();
+    fillDatalists();
+    alert(`${names.length}명의 자리가 변경되었습니다.`);
+  }catch(e){ alert('이동 실패'); console.error(e); }
+}
 
 /* ═════════ 명단 엑셀 일괄 등록 ═════════ */
 const ROSTER_HEADERS=['이름','담당','배달위치','구역','내선','연락처뒤4자리'];
