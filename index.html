@@ -94,7 +94,10 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 /* 얼음 옵션 (한 잔마다) */
 .ice-picks{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none}
 .ice-picks.show{display:block}
+.cup-opt{background:#FBF7EE;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}
+.cup-ttl{font-size:.72rem;font-weight:700;color:var(--gold);letter-spacing:.06em;margin-bottom:5px}
 .ice-pick{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem}
+.ice-pick:last-child{margin-bottom:0}
 .ice-pick .lbl{color:var(--mocha);white-space:nowrap}
 .ice-pick select{flex:1;font-family:inherit;font-size:.82rem;padding:6px 8px;border:1px solid var(--line);
   border-radius:8px;background:#fff;color:var(--brew-deep);max-width:150px}
@@ -553,11 +556,20 @@ const DEFAULT_MENUS=[
  {id:'hd',name:'꿈Brew커피',sub:'Hand-Drip',price:3000,temps:['ice','hot']},
 ];
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
-  menus:DEFAULT_MENUS,iceOpts:[],menuTitle:'오늘의 메뉴',menuDesc:''};
+  menus:DEFAULT_MENUS,iceOpts:[],optGroups:[],menuTitle:'오늘의 메뉴',menuDesc:''};
 let PLAN=null;        // 이번 주차 일정 {deadDate,deadTime,deliverDate,slots:[{name,cap}]}
 let slotUsed={};      // 교시별 이미 주문된 잔 수
 let chosenSlot=null;
-const iceSel={};      // key: menuId_ice_index -> 옵션
+const optSel={};      // key: `${menuId}_${temp}_${cupIndex}_${groupId}` -> 값
+function optGroups(){
+  if(SETTINGS.optGroups&&SETTINGS.optGroups.length) return SETTINGS.optGroups;
+  if((SETTINGS.iceOpts||[]).length)
+    return [{id:'ice',label:'얼음',icon:'🧊',iceOnly:true,opts:SETTINGS.iceOpts}];
+  return [];
+}
+function groupsFor(temp){
+  return optGroups().filter(g=>(g.opts||[]).length && (!g.iceOnly||temp==='ice'));
+}
 let MENUS=DEFAULT_MENUS;
 let TABS=['본관·행정','제1연구실','제2연구실','제3연구실','제4연구실','제5연구실','기타','통합교육실'];
 
@@ -861,24 +873,32 @@ function chgQty(id,t,d){
   renderCartBar();
 }
 function renderIcePicks(id){
-  const opts=SETTINGS.iceOpts||[];
   const box=document.getElementById(`ice-${id}`);
   if(!box) return;
-  const n=cart[id+'_ice']||0;
-  if(!opts.length||n===0){ box.classList.remove('show'); box.innerHTML=''; return; }
-  box.classList.add('show');
   let html='';
-  for(let i=0;i<n;i++){
-    const k=`${id}_${i}`;
-    const cur=iceSel[k]||opts[0];
-    html+=`<div class="ice-pick">
-      <span class="lbl">ICE ${n>1?(i+1)+'잔째':''} 얼음</span>
-      <select onchange="iceSel['${k}']=this.value">
-        ${opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}
-      </select>
-    </div>`;
-    iceSel[k]=cur;
-  }
+  ['ice','hot'].forEach(t=>{
+    const n=cart[`${id}_${t}`]||0;
+    const gs=groupsFor(t);
+    if(!n||!gs.length) return;
+    for(let i=0;i<n;i++){
+      const cupLabel=`${t==='ice'?'ICE':'HOT'}${n>1?' '+(i+1)+'잔째':''}`;
+      html+=`<div class="cup-opt"><div class="cup-ttl">${cupLabel}</div>`;
+      gs.forEach(g=>{
+        const k=`${id}_${t}_${i}_${g.id}`;
+        const cur=optSel[k]||g.opts[0];
+        optSel[k]=cur;
+        html+=`<div class="ice-pick">
+          <span class="lbl">${g.icon||''} ${g.label}</span>
+          <select onchange="optSel['${k}']=this.value">
+            ${g.opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>`;
+      });
+      html+='</div>';
+    }
+  });
+  if(!html){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.classList.add('show');
   box.innerHTML=html;
 }
 function cupCount(){ return Object.values(cart).reduce((s,v)=>s+v,0); }
@@ -997,11 +1017,15 @@ async function submitOrder(){
   const items=[];
   Object.entries(cart).forEach(([k,q])=>{
     const [id,t]=k.split('_'); const m=M(id);
-    if(t==='ice'&&(SETTINGS.iceOpts||[]).length){
-      const groups={};
-      for(let i=0;i<q;i++){ const o=iceSel[`${id}_${i}`]||SETTINGS.iceOpts[0];
-        groups[o]=(groups[o]||0)+1; }
-      Object.entries(groups).forEach(([opt,n])=>
+    const gs=groupsFor(t);
+    if(gs.length){
+      const combo={};
+      for(let i=0;i<q;i++){
+        const picks=gs.map(g=>optSel[`${id}_${t}_${i}_${g.id}`]||g.opts[0]);
+        const key=picks.join(' · ');
+        combo[key]=(combo[key]||0)+1;
+      }
+      Object.entries(combo).forEach(([opt,n])=>
         items.push({m:id,name:m.name,t,q:n,price:m.price,opt}));
     }else{
       items.push({m:id,name:m.name,t,q,price:m.price});

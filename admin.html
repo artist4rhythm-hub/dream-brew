@@ -143,9 +143,21 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .week-pick{background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;
   display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.88rem}
 .week-pick select{flex:1;min-width:160px}
-/* 얼음 옵션 */
-.ice-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
-.ice-row input{flex:1}
+/* 옵션 그룹 */
+.og-card{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:#fff}
+.og-top{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.og-top input.icon{width:52px;text-align:center}
+.og-top input.label{flex:1}
+.og-opts{width:100%}
+.og-foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}
+.og-foot label{font-size:.78rem;color:var(--mocha);display:flex;align-items:center;gap:6px}
+.og-foot input[type=checkbox]{width:17px;height:17px;accent-color:var(--ice)}
+.og-head{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.og-head input{flex:1;min-width:90px}
+.og-head select{flex:1;min-width:110px;font-family:inherit;font-size:.86rem;padding:10px 12px;
+  border:1.5px solid var(--line);border-radius:10px;background:#fff;color:var(--brew-deep)}
+.og-opts{width:100%}
+.og-label{font-size:.72rem;color:var(--mocha);margin-bottom:4px}
 /* 메시지 */
 .msg-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
 .msg-card.review{border-left:4px solid var(--sage)}
@@ -458,11 +470,12 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <div class="set-row"><label>예금주</label><input id="setHolder" value="장선진"></div>
       </div>
       <div class="set-group">
-        <h4>🧊 얼음 옵션 (ICE 음료 선택지)</h4>
-        <div id="iceOptList"></div>
-        <button class="btn line sm" style="margin-top:6px" onclick="addIceRow()">＋ 옵션 추가</button>
-        <p class="hint">주문자가 ICE 음료를 담을 때 한 잔마다 선택합니다. (예: 얼음 보통 / 얼음 적게 / 얼음 빼고)
-        비워 두면 옵션 선택 없이 주문됩니다.</p>
+        <h4>🎛 음료 옵션 그룹</h4>
+        <p class="hint" style="margin-bottom:10px">주문자가 음료 <b>한 잔마다</b> 선택하는 옵션입니다.
+        그룹을 만들고 선택지를 쉼표(,)로 구분해 적으세요.<br>
+        <b>적용 대상</b>: ICE 음료만 / HOT 음료만 / 모든 음료 중에서 고를 수 있습니다.</p>
+        <div id="optGroupList"></div>
+        <button class="btn line sm" style="margin-top:6px" onclick="addOptGroup()">＋ 옵션 그룹 추가</button>
       </div>
       <div class="set-group">
         <h4>✏️ 주문 페이지 안내 문구</h4>
@@ -641,6 +654,10 @@ const DEFAULT_MENUS=[
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
   menus:DEFAULT_MENUS,couponEventDone:false,
   iceOpts:['얼음 보통','얼음 적게','얼음 빼고'],
+  optGroups:[
+    {id:'ice',  name:'얼음',  apply:'ice', opts:['얼음 보통','얼음 적게','얼음 빼고']},
+    {id:'sugar',name:'당도',  apply:'all', opts:['기본 당도','덜 달게','더 달게']}
+  ],
   menuTitle:'오늘의 메뉴',
   menuDesc:'이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다.'};
 let PLANS={};        // week -> {deadAt, deliverDate, slots:[{name,cap}]}
@@ -1305,12 +1322,26 @@ function subscribeLogs(){
 }
 
 /* ═════════ 설정 ═════════ */
-function addIceRow(v){
-  const box=document.getElementById('iceOptList');
-  const row=document.createElement('div'); row.className='ice-row';
-  row.innerHTML=`<input type="text" value="${v||''}" placeholder="예: 얼음 적게">
-    <button class="btn line sm" onclick="this.parentElement.remove()">✕</button>`;
-  box.appendChild(row);
+const APPLY_LABEL={ice:'ICE 음료만',hot:'HOT 음료만',all:'모든 음료'};
+function addOptGroup(g){
+  const box=document.getElementById('optGroupList');
+  const card=document.createElement('div'); card.className='og-card';
+  card.dataset.id=g?g.id:('g'+Date.now());
+  const apply=g?g.apply:'all';
+  card.innerHTML=`
+    <div class="og-head">
+      <input type="text" value="${g?g.name:''}" placeholder="그룹 이름 (예: 당도)" data-f="name">
+      <select data-f="apply">
+        ${Object.entries(APPLY_LABEL).map(([k,v])=>
+          `<option value="${k}" ${apply===k?'selected':''}>${v}</option>`).join('')}
+      </select>
+      <button class="btn line sm" onclick="this.closest('.og-card').remove()">✕</button>
+    </div>
+    <div class="og-label">선택지 (쉼표로 구분)</div>
+    <input class="og-opts" type="text" data-f="opts"
+      value="${g?(g.opts||[]).join(', ').replace(/"/g,'&quot;'):''}"
+      placeholder="예: 기본 당도, 덜 달게, 더 달게">`;
+  box.appendChild(card);
 }
 function fillSettingsUI(){
   document.getElementById('setDay').value=String(SETTINGS.deadlineDay??4);
@@ -1324,8 +1355,14 @@ function fillSettingsUI(){
   document.getElementById('setPauseMsg').value=SETTINGS.pauseMsg||'';
   document.getElementById('setMenuTitle').value=SETTINGS.menuTitle||'';
   document.getElementById('setMenuDesc').value=SETTINGS.menuDesc||'';
-  const ice=document.getElementById('iceOptList'); ice.innerHTML='';
-  (SETTINGS.iceOpts||[]).forEach(v=>addIceRow(v));
+  const og=document.getElementById('optGroupList'); og.innerHTML='';
+  let groups=SETTINGS.optGroups;
+  if(!groups||!groups.length){
+    // 이전 버전(iceOpts)에서 자동 이관
+    groups=(SETTINGS.iceOpts||[]).length
+      ? [{id:'ice',name:'얼음',apply:'ice',opts:SETTINGS.iceOpts}] : [];
+  }
+  groups.forEach(g=>addOptGroup(g));
   const box=document.getElementById('menuSet'); box.innerHTML='';
   (SETTINGS.menus||DEFAULT_MENUS).forEach(m=>addMenuRow(m));
 }
@@ -1361,7 +1398,12 @@ async function saveSettings(){
     pauseMsg:document.getElementById('setPauseMsg').value.trim(),
     menuTitle:document.getElementById('setMenuTitle').value.trim()||'오늘의 메뉴',
     menuDesc:document.getElementById('setMenuDesc').value.trim(),
-    iceOpts:[...document.querySelectorAll('#iceOptList input')].map(i=>i.value.trim()).filter(Boolean),
+    optGroups:[...document.querySelectorAll('#optGroupList .og-card')].map(c=>({
+      id:c.dataset.id,
+      name:c.querySelector('[data-f=name]').value.trim(),
+      apply:c.querySelector('[data-f=apply]').value,
+      opts:c.querySelector('[data-f=opts]').value.split(',').map(s=>s.trim()).filter(Boolean)
+    })).filter(g=>g.name&&g.opts.length),
     menus
   };
   try{
