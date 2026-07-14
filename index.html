@@ -562,13 +562,18 @@ let slotUsed={};      // 교시별 이미 주문된 잔 수
 let chosenSlot=null;
 const optSel={};      // key: `${menuId}_${temp}_${cupIndex}_${groupId}` -> 값
 function optGroups(){
-  if(SETTINGS.optGroups&&SETTINGS.optGroups.length) return SETTINGS.optGroups;
-  if((SETTINGS.iceOpts||[]).length)
-    return [{id:'ice',label:'얼음',icon:'🧊',iceOnly:true,opts:SETTINGS.iceOpts}];
-  return [];
+  let g=SETTINGS.optGroups;
+  if(!g||!g.length){
+    g=(SETTINGS.iceOpts||[]).length
+      ? [{id:'ice',name:'얼음',apply:'ice',opts:SETTINGS.iceOpts}] : [];
+  }
+  return (g||[]).filter(x=>x&&x.name&&(x.opts||[]).length);
 }
 function groupsFor(temp){
-  return optGroups().filter(g=>(g.opts||[]).length && (!g.iceOnly||temp==='ice'));
+  return optGroups().filter(g=>{
+    const ap=g.apply||'all';
+    return ap==='all' || ap===temp;
+  });
 }
 let MENUS=DEFAULT_MENUS;
 let TABS=['본관·행정','제1연구실','제2연구실','제3연구실','제4연구실','제5연구실','기타','통합교육실'];
@@ -888,7 +893,7 @@ function renderIcePicks(id){
         const cur=optSel[k]||g.opts[0];
         optSel[k]=cur;
         html+=`<div class="ice-pick">
-          <span class="lbl">${g.icon||''} ${g.label}</span>
+          <span class="lbl">${g.name}</span>
           <select onchange="optSel['${k}']=this.value">
             ${g.opts.map(o=>`<option ${o===cur?'selected':''}>${o}</option>`).join('')}
           </select>
