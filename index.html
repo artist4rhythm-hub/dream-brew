@@ -371,7 +371,7 @@ button{font-family:inherit;cursor:pointer;border:none}
         <div class="steps fu" style="animation-delay:.1s">
           <div class="step"><span class="ic">🧾</span><span class="num">STEP 1</span><div class="tt">마감 전까지<br>주문 접수</div></div>
           <div class="step"><span class="ic">☕</span><span class="num">STEP 2</span><div class="tt">학생들이<br>정성껏 제조</div></div>
-          <div class="step"><span class="ic">🚶</span><span class="num">STEP 3</span><div class="tt">선생님 자리로<br>배달</div></div>
+          <div class="step" id="step3"><span class="ic">🚶</span><span class="num">STEP 3</span><div class="tt">선생님 자리로<br>배달</div></div>
         </div>
         <div class="deliver-banner fu" id="deliverBanner" style="animation-delay:.15s;display:none"></div>
         <div class="fu" style="animation-delay:.2s">
@@ -479,11 +479,11 @@ button{font-family:inherit;cursor:pointer;border:none}
 
     <!-- ═══ 3.5 배달 교시 선택 ═══ -->
     <section class="screen" id="scr-slot">
-      <h2 class="step-title">언제 받으시겠어요?</h2>
-      <p class="step-desc" id="slotDesc">배달받을 교시를 선택해 주세요.</p>
+      <h2 class="step-title" id="slotTitle">언제 받으시겠어요?</h2>
+      <p class="step-desc" id="slotDesc">받을 교시를 선택해 주세요.</p>
       <div class="slot-list" id="slotList"></div>
       <div style="margin-top:18px">
-        <button class="btn" id="slotNextBtn" disabled onclick="go('scr-seat')">배달 위치 확인하기</button>
+        <button class="btn" id="slotNextBtn" disabled onclick="slotNext()">다음</button>
         <button class="btn ghost" onclick="go('scr-cart')">← 주문서로</button>
       </div>
     </section>
@@ -521,7 +521,7 @@ button{font-family:inherit;cursor:pointer;border:none}
       </label>
       <button class="btn" id="orderBtn" disabled onclick="submitOrder()">주문 완료하기</button>
       <p class="hint" id="orderHint" style="margin-top:8px">☝ 입금 후 위의 <b>‘입금을 완료했습니다’</b>를 체크하면 버튼이 활성화됩니다.</p>
-      <button class="btn ghost" onclick="go('scr-seat')">← 배달 위치로</button>
+      <button class="btn ghost" onclick="payBack()">← 이전</button>
     </section>
 
     <!-- ═══ 6. 완료 ═══ -->
@@ -531,11 +531,11 @@ button{font-family:inherit;cursor:pointer;border:none}
           <circle cx="20" cy="20" r="19" fill="#EFF4EB" stroke="#8FAF7E"/>
           <path d="M12 20.5l5.5 5.5L28 15" stroke="#8FAF7E" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <h3>주문이 접수되었어요!</h3>
+        <h3 id="doneTitle">주문이 접수되었어요!</h3>
         <div class="num" id="ticketNum"></div>
         <div class="ticket-body" id="ticketBody"></div>
       </div>
-      <p class="hint" style="margin-top:16px">금요일 2~3교시, 학생들이 직접 만들어 자리로 배달해 드립니다 💛</p>
+      <p class="hint" style="margin-top:16px" id="doneHint">학생들이 직접 만들어 드립니다 💛</p>
       <button class="btn" style="margin-top:14px" onclick="openMyOrders()">📋 내 주문 현황 보기</button>
       <button class="btn ghost" onclick="location.reload()">처음으로</button>
     </section>
@@ -588,8 +588,12 @@ const DEFAULT_MENUS=[
  {id:'hd',name:'꿈Brew커피',sub:'Hand-Drip',price:3000,temps:['ice','hot']},
 ];
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
-  menus:DEFAULT_MENUS,iceOpts:[],optGroups:[],menuTitle:'오늘의 메뉴',menuDesc:''};
+  menus:DEFAULT_MENUS,iceOpts:[],optGroups:[],menuTitle:'오늘의 메뉴',menuDesc:'',
+  mode:'delivery',pickupPlace:'꿈Brew 카페',slogan:'꿈을 한 잔씩 우려냅니다',intro:'',doneMsg:'주문이 접수되었어요!'};
 let PLAN=null;        // 이번 주차 일정 {deadDate,deadTime,deliverDate,slots:[{name,cap}]}
+const isPickup=()=>SETTINGS.mode==='pickup';
+const modeWord=()=>isPickup()?'픽업':'배달';   // 명사
+const takeVerb=()=>isPickup()?'픽업':'배달';
 let slotUsed={};      // 교시별 이미 주문된 잔 수
 let chosenSlot=null;
 const optSel={};      // key: `${menuId}_${temp}_${cupIndex}_${groupId}` -> 값
@@ -694,19 +698,25 @@ async function init(){
     if(document.getElementById('scr-slot').classList.contains('active')) renderSlots();
   },e=>console.error('slots',e));
   document.getElementById('menuTitle').textContent=SETTINGS.menuTitle||'오늘의 메뉴';
-  let desc=SETTINGS.menuDesc||'';
+  let desc=SETTINGS.menuDesc||`학생들이 정성껏 만들어 ${isPickup()?'준비해':'배달해'} 드립니다.`;
   if(PLAN&&PLAN.deliverDate){
     const [dy,dm,dd]=PLAN.deliverDate.split('-').map(Number);
     const dt=new Date(dy,dm-1,dd);
     const slotTxt=(PLAN.slots||[]).map(s=>s.name).join(' · ');
-    desc=`🚶 ${dm}/${dd}(${DAYNAMES[dt.getDay()]}) ${slotTxt} 배달 예정`+(desc?` — ${desc}`:'');
+    const icon=isPickup()?'🥤':'🚶';
+    desc=`${icon} ${dm}/${dd}(${DAYNAMES[dt.getDay()]}) ${slotTxt} ${modeWord()} 예정`+(desc?` — ${desc}`:'');
   }
+  // 슬로건/소개문
+  const sl=document.querySelector('.tagline'); if(sl&&SETTINGS.slogan) sl.textContent=SETTINGS.slogan;
+  const intro=document.querySelector('.intro-card'); if(intro&&SETTINGS.intro) intro.innerHTML=SETTINGS.intro.replace(/</g,'&lt;').replace(/\n/g,'<br>');
   document.getElementById('menuDesc').textContent=desc;
   document.getElementById('accountNum').textContent=`${SETTINGS.bank} ${SETTINGS.acct}`;
   document.getElementById('accountHolder').textContent=`예금주 · ${SETTINGS.holder} (꿈Brew)`;
   renderMenu();
   document.getElementById('menuStrip').innerHTML=
     MENUS.map(m=>`<span class="ms-chip">${m.name}<b>${m.price.toLocaleString()}원</b></span>`).join('');
+  const s3=document.getElementById('step3');
+  if(s3&&isPickup()) s3.innerHTML='<span class="ic">🥤</span><span class="num">STEP 3</span><div class="tt">카페에서<br>픽업</div>';
   renderDeliverBanner();
   if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
   tick(); setInterval(tick,30000);
@@ -736,7 +746,7 @@ function renderDeliverBanner(){
   if(!PLAN||!PLAN.deliverDate){ if(box)box.style.display='none'; if(chip)chip.style.display='none'; return; }
   const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
   const dt=new Date(y,m-1,d);
-  if(chip){ chip.textContent=`🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정`; chip.style.display='inline-flex'; }
+  if(chip){ chip.textContent=`${isPickup()?'🥤':'🚶'} ${m}/${d}(${DAYNAMES[dt.getDay()]}) ${modeWord()} 예정`; chip.style.display='inline-flex'; }
   if(!box) return;
   const slots=(PLAN.slots||[]);
   let slotHtml='';
@@ -748,7 +758,9 @@ function renderDeliverBanner(){
     }).join('')+'</div>';
   }
   const live=`<div class="live-dot"><span class="pip"></span>실시간 현황 · 방금 업데이트됨</div>`;
-  box.innerHTML=`<div class="db-t">🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정${slots.length?' · 받을 교시를 선택할 수 있어요':''}</div>${slotHtml}${slots.length?live:''}`;
+  const icon=isPickup()?'🥤':'🚶';
+  const tail=isPickup()?'받을 시간대를 선택할 수 있어요':'받을 교시를 선택할 수 있어요';
+  box.innerHTML=`<div class="db-t">${icon} ${m}/${d}(${DAYNAMES[dt.getDay()]}) ${modeWord()} 예정${slots.length?' · '+tail:''}</div>${slotHtml}${slots.length?live:''}`;
   box.style.display='block';
 }
 let liveTimer=null;
@@ -760,16 +772,25 @@ function liveBeat(){
 /* ═════════ 화면 전환 ═════════ */
 function goAfterCart(){
   if(PLAN&&PLAN.slots&&PLAN.slots.length) go('scr-slot');
+  else if(isPickup()) go('scr-pay');
+  else go('scr-seat');
+}
+function slotNext(){ isPickup()?go('scr-pay'):go('scr-seat'); }
+function payBack(){
+  if(isPickup()){ (PLAN&&PLAN.slots&&PLAN.slots.length)?go('scr-slot'):go('scr-cart'); }
   else go('scr-seat');
 }
 function renderSlots(){
   const box=document.getElementById('slotList'); box.innerHTML='';
   const need=cupCount();
+  const st=document.getElementById('slotTitle'); if(st) st.textContent=isPickup()?'언제 픽업하시겠어요?':'언제 받으시겠어요?';
   if(PLAN&&PLAN.deliverDate){
     const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
     const dt=new Date(y,m-1,d);
     document.getElementById('slotDesc').innerHTML=
-      `<b>${m}/${d}(${DAYNAMES[dt.getDay()]})</b> 배달 예정입니다. 받으실 교시를 선택해 주세요.`;
+      `<b>${m}/${d}(${DAYNAMES[dt.getDay()]})</b> ${modeWord()} 예정입니다. ${isPickup()?'픽업하실 시간대':'받으실 교시'}를 선택해 주세요.`;
+  }else{
+    document.getElementById('slotDesc').textContent=`${isPickup()?'픽업하실 시간대':'받으실 교시'}를 선택해 주세요.`;
   }
   (PLAN.slots||[]).forEach(s=>{
     const used=slotUsed[s.name]||0;
@@ -1126,7 +1147,8 @@ async function submitOrder(){
   const raw=rawTotal(),disc=discount(),pay=raw-disc;
   const order={
     week, memberId:user.id, name:user.name, ext:user.ext||'',
-    loc:seat, homeLoc:user.loc, slot:chosenSlot||'',
+    loc: isPickup() ? (SETTINGS.pickupPlace||'꿈Brew 카페') : seat,
+    homeLoc:user.loc, slot:chosenSlot||'', mode:SETTINGS.mode||'delivery',
     deliverDate:(PLAN&&PLAN.deliverDate)||'',
     items, cups:cupCount(), raw, discount:disc, pay,
     couponUsed:couponUse,
@@ -1160,13 +1182,22 @@ async function submitOrder(){
   }
 }
 function showTicket(order){
+  const dt=document.getElementById('doneTitle'); if(dt) dt.textContent=SETTINGS.doneMsg||'주문이 접수되었어요!';
+  const dh=document.getElementById('doneHint');
+  if(dh){
+    if(isPickup()){
+      dh.innerHTML=`학생들이 정성껏 만들어 둘게요. <b>${order.slot||'정해진 시간'}</b>에 <b>${SETTINGS.pickupPlace||'꿈Brew 카페'}</b>로 픽업하러 와 주세요 💛`;
+    }else{
+      dh.innerHTML='학생들이 직접 만들어 자리로 배달해 드립니다 💛';
+    }
+  }
   const num='DB-'+order.week.slice(5).replace('-','')+'-'+String(Math.floor(Math.random()*900)+100);
   document.getElementById('ticketNum').textContent='주문번호 '+num;
   const lines=order.items.map(i=>
     `<div class="order-line"><span>${i.name} (${i.t.toUpperCase()}) × ${i.q}</span><b>${(i.price*i.q).toLocaleString()}원</b></div>`).join('');
   document.getElementById('ticketBody').innerHTML=lines+
     `<div class="order-line"><span>쿠폰 사용</span><b>${order.couponUsed}잔</b></div>
-     <div class="order-line"><span>배달 위치</span><b>${order.loc}</b></div>
+     <div class="order-line"><span>${isPickup()?'픽업 장소':'배달 위치'}</span><b>${order.loc}</b></div>
      <div class="order-line"><span>결제 금액</span><b style="color:var(--gold)">${order.pay.toLocaleString()}원</b></div>`;
   go('scr-done');
   document.getElementById('cartBar').classList.remove('show');

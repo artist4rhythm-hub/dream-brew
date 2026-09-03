@@ -370,7 +370,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
   <nav class="tabs" id="tabBar" style="display:none">
     <button class="tab on" data-p="p-orders">📋 주문 취합</button>
     <button class="tab" data-p="p-make">☕ 제조 준비</button>
-    <button class="tab" data-p="p-route">🚶 배달 동선</button>
+    <button class="tab" data-p="p-route" id="tabRoute">🚶 배달 동선</button>
     <button class="tab" data-p="p-week">📅 주차별 일정</button>
     <button class="tab" data-p="p-coupon">🎟 쿠폰 관리</button>
     <button class="tab" data-p="p-msg">💬 후기·메시지</button>
@@ -411,8 +411,8 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 
     <!-- ═══ 배달 동선 ═══ -->
     <section class="panel" id="p-route">
-      <h3 class="sec">배달 동선표</h3>
-      <p class="hint" style="margin-bottom:12px">배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.</p>
+      <h3 class="sec" id="routeSecTitle">배달 동선표</h3>
+      <p class="hint" style="margin-bottom:12px" id="routeSecDesc">배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.</p>
       <div id="routeList"></div>
     </section>
 
@@ -437,6 +437,24 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint">여기서 정한 값은 <b>모든 주차의 기본값</b>입니다.<br>
         특정 주차만 다르게 하려면 <b>📅 주차별 일정</b> 탭에서 설정하세요 —
         <b>주차별 일정이 항상 기본 설정보다 우선</b> 적용됩니다.</p>
+      </div>
+      <div class="set-group" style="border-color:var(--sage);border-width:1.5px">
+        <h4>🚚 운영 방식 (배달 / 픽업)</h4>
+        <div class="set-row">
+          <label style="min-width:auto;display:flex;align-items:center;gap:6px">
+            <input type="radio" name="mode" value="delivery" id="modeDelivery" style="width:18px;height:18px;accent-color:var(--sage)"> 🚶 배달
+          </label>
+          <label style="min-width:auto;display:flex;align-items:center;gap:6px;margin-left:14px">
+            <input type="radio" name="mode" value="pickup" id="modePickup" style="width:18px;height:18px;accent-color:var(--sage)"> 🥤 픽업
+          </label>
+        </div>
+        <div class="set-row" id="pickupPlaceRow" style="display:none">
+          <label>픽업 장소</label>
+          <input type="text" id="setPickupPlace" placeholder="예: 통합교육실2 앞 꿈Brew 카페" style="flex:1">
+        </div>
+        <p class="hint"><b>배달</b>: 학생이 선생님 자리로 가져다 드립니다.<br>
+        <b>픽업</b>: 선생님이 정해진 시간대(교시)에 카페로 받으러 옵니다. 자리 선택 대신 픽업 시간대를 고르게 됩니다.<br>
+        픽업 시간대(교시)는 <b>📅 주차별 일정</b>에서 교시를 설정하면 그대로 픽업 시간이 됩니다.</p>
       </div>
       <div class="set-group">
         <h4>⏰ 기본 주문 마감 <span style="font-size:.7rem;color:var(--mocha);font-weight:400">(주차별 일정이 없을 때 적용)</span></h4>
@@ -487,10 +505,16 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <button class="btn line sm" style="margin-top:6px" onclick="addOptGroup()">＋ 옵션 그룹 추가</button>
       </div>
       <div class="set-group">
-        <h4>✏️ 주문 페이지 안내 문구</h4>
+        <h4>✏️ 홈 화면 안내 문구</h4>
+        <div class="set-row"><label>슬로건</label><input id="setSlogan" placeholder="꿈을 한 잔씩 우려냅니다"></div>
+        <div class="set-row" style="align-items:flex-start"><label style="padding-top:10px">소개문</label>
+          <textarea id="setIntro" style="flex:1;min-height:80px" placeholder="특수학급 실습카페 '꿈Brew'는…"></textarea></div>
+        <div style="border-top:1px dashed var(--line);margin:12px 0"></div>
         <div class="set-row"><label>메뉴 제목</label><input id="setMenuTitle" placeholder="오늘의 메뉴"></div>
-        <div class="set-row"><label>메뉴 설명</label><input id="setMenuDesc" placeholder="이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다."></div>
-        <p class="hint">주문자가 메뉴 화면에서 보게 될 문구입니다.</p>
+        <div class="set-row"><label>메뉴 설명</label><input id="setMenuDesc" placeholder="학생들이 정성껏 만들어 드립니다."></div>
+        <div class="set-row"><label>완료 문구</label><input id="setDoneMsg" placeholder="주문이 접수되었어요!"></div>
+        <p class="hint">홈 화면과 주문 완료 화면에 표시되는 문구입니다. 비워 두면 기본 문구가 쓰입니다.
+        <br>배달/픽업 같은 단어는 위에서 고른 <b>운영 방식</b>에 따라 자동으로 바뀝니다.</p>
       </div>
       <div class="set-group">
         <h4>📖 메뉴 · 가격</h4>
@@ -519,9 +543,9 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint">이 주차에만 적용됩니다. (기본 설정과 다르게 할 수 있어요)</p>
       </div>
       <div class="set-group">
-        <h4>🚶 배달 일정 · 교시별 정원</h4>
+        <h4 id="wpSlotTitle">🚶 배달 일정 · 교시별 정원</h4>
         <div class="set-row">
-          <label>배달 날짜</label>
+          <label id="wpDateLabel">배달 날짜</label>
           <input type="date" id="wpDeliverDate">
         </div>
         <div id="slotList" style="margin-top:10px"></div>
@@ -668,7 +692,9 @@ let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay
     {id:'sugar',name:'당도',  apply:'all', opts:['기본 당도','덜 달게','더 달게']}
   ],
   menuTitle:'오늘의 메뉴',
-  menuDesc:'이번 주 금요일 2~3교시, 학생들이 정성껏 만들어 배달해 드립니다.'};
+  menuDesc:'',
+  mode:'delivery', pickupPlace:'통합교육실2 앞 꿈Brew 카페',
+  slogan:'꿈을 한 잔씩 우려냅니다', intro:'', doneMsg:'주문이 접수되었어요!'};
 let PLANS={};        // week -> {deadAt, deliverDate, slots:[{name,cap}]}
 let unsubMsgs=null, MSGS=[];
 let ADMIN=null, ORDERS=[], MEMBERS=[], unsubOrders=null, unsubOps=null, unsubLogs=null, curWeek=null;
@@ -851,6 +877,7 @@ async function bootData(){
     else await db.collection('settings').doc('main').set(SETTINGS);
   }catch(e){ console.error(e); }
   fillSettingsUI();
+  applyModeLabels();
   setupWeeks();
   loadMembers();
   subscribeOps();
@@ -918,6 +945,9 @@ function loadWeekPlan(){
   const box=document.getElementById('slotList'); box.innerHTML='';
   const slots=p.slots&&p.slots.length?p.slots:[{name:'2교시',cap:20},{name:'3교시',cap:20}];
   slots.forEach(s=>addSlotRow(s.name,s.cap));
+  const pk=(SETTINGS.mode==='pickup');
+  document.getElementById('wpSlotTitle').textContent=pk?'🥤 픽업 일정 · 시간대별 정원':'🚶 배달 일정 · 교시별 정원';
+  document.getElementById('wpDateLabel').textContent=pk?'픽업 날짜':'배달 날짜';
 }
 async function saveWeekPlan(){
   const week=document.getElementById('wkSel').value;
@@ -1359,6 +1389,8 @@ function subscribeLogs(){
 
 /* ═════════ 설정 ═════════ */
 const APPLY_LABEL={ice:'ICE 음료만',hot:'HOT 음료만',all:'모든 음료'};
+const isPickup=()=>SETTINGS.mode==='pickup';
+const modeWord=()=>isPickup()?'픽업':'배달';
 function addOptGroup(g){
   const box=document.getElementById('optGroupList');
   const card=document.createElement('div'); card.className='og-card';
@@ -1379,6 +1411,16 @@ function addOptGroup(g){
       placeholder="예: 기본 당도, 덜 달게, 더 달게">`;
   box.appendChild(card);
 }
+function applyModeLabels(){
+  const pk=isPickup();
+  const tr=document.getElementById('tabRoute'); if(tr) tr.textContent=pk?'🥤 픽업 준비':'🚶 배달 동선';
+  const rt=document.getElementById('routeSecTitle'); if(rt) rt.textContent=pk?'픽업 시간대별 목록':'배달 동선표';
+  const rd=document.getElementById('routeSecDesc'); if(rd) rd.textContent=pk?'픽업 시간대별로 묶었습니다. 준비·전달 안내에 활용하세요.':'배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.';
+}
+function modeToggle(){
+  const pk=document.getElementById('modePickup').checked;
+  document.getElementById('pickupPlaceRow').style.display=pk?'flex':'none';
+}
 function fillSettingsUI(){
   document.getElementById('setDay').value=String(SETTINGS.deadlineDay??4);
   document.getElementById('setTime').value=SETTINGS.deadlineTime||'16:00';
@@ -1391,6 +1433,16 @@ function fillSettingsUI(){
   document.getElementById('setPauseMsg').value=SETTINGS.pauseMsg||'';
   document.getElementById('setMenuTitle').value=SETTINGS.menuTitle||'';
   document.getElementById('setMenuDesc').value=SETTINGS.menuDesc||'';
+  const mode=SETTINGS.mode||'delivery';
+  document.getElementById('modeDelivery').checked=(mode==='delivery');
+  document.getElementById('modePickup').checked=(mode==='pickup');
+  document.getElementById('setPickupPlace').value=SETTINGS.pickupPlace||'';
+  document.getElementById('pickupPlaceRow').style.display=(mode==='pickup')?'flex':'none';
+  document.getElementById('setSlogan').value=SETTINGS.slogan||'';
+  document.getElementById('setIntro').value=SETTINGS.intro||'';
+  document.getElementById('setDoneMsg').value=SETTINGS.doneMsg||'';
+  document.getElementById('modeDelivery').onchange=modeToggle;
+  document.getElementById('modePickup').onchange=modeToggle;
   const og=document.getElementById('optGroupList'); og.innerHTML='';
   let groups=SETTINGS.optGroups;
   if(!groups||!groups.length){
@@ -1434,6 +1486,11 @@ async function saveSettings(){
     pauseMsg:document.getElementById('setPauseMsg').value.trim(),
     menuTitle:document.getElementById('setMenuTitle').value.trim()||'오늘의 메뉴',
     menuDesc:document.getElementById('setMenuDesc').value.trim(),
+    mode:document.getElementById('modePickup').checked?'pickup':'delivery',
+    pickupPlace:document.getElementById('setPickupPlace').value.trim()||'꿈Brew 카페',
+    slogan:document.getElementById('setSlogan').value.trim()||'꿈을 한 잔씩 우려냅니다',
+    intro:document.getElementById('setIntro').value.trim(),
+    doneMsg:document.getElementById('setDoneMsg').value.trim()||'주문이 접수되었어요!',
     optGroups:[...document.querySelectorAll('#optGroupList .og-card')].map(c=>({
       id:c.dataset.id,
       name:c.querySelector('[data-f=name]').value.trim(),
@@ -1445,6 +1502,7 @@ async function saveSettings(){
   try{
     await db.collection('settings').doc('main').set(data,{merge:true});
     SETTINGS={...SETTINGS,...data};
+    applyModeLabels();
     setupWeeks();
     alert('설정이 저장되었습니다. 주문 페이지에 바로 반영됩니다.');
   }catch(e){ alert('저장 실패'); console.error(e); }
