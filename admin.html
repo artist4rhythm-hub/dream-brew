@@ -31,6 +31,13 @@ header{padding:16px 20px;display:flex;align-items:center;gap:14px;border-bottom:
 .head-sub{font-size:.74rem;color:var(--mocha)}
 .week-chip{margin-left:auto;background:var(--gold-soft);color:var(--gold);border:1px solid #EEDFBC;
   border-radius:999px;padding:5px 14px;font-size:.78rem;font-weight:700;white-space:nowrap}
+.live-badge{display:inline-flex;align-items:center;gap:5px;background:var(--sage-soft);color:var(--sage);
+  border:1px solid #DCE8D6;border-radius:999px;padding:5px 12px;font-size:.74rem;font-weight:700;white-space:nowrap;transition:background .3s}
+.live-badge .pip{width:7px;height:7px;border-radius:50%;background:var(--sage);
+  box-shadow:0 0 0 0 rgba(143,175,126,.6);animation:livepulse 1.8s infinite}
+.live-badge.flash{background:#d9ebd0}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(143,175,126,.55)}70%{box-shadow:0 0 0 6px rgba(143,175,126,0)}100%{box-shadow:0 0 0 0 rgba(143,175,126,0)}}
+@media(max-width:520px){.live-badge{padding:5px 9px}}
 
 /* 탭 */
 .tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 20px 0;scrollbar-width:none;border-bottom:1px solid var(--line);background:var(--cream)}
@@ -342,6 +349,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
       <div class="head-sub"><span id="whoAmI"></span> <button class="logout-btn" onclick="logout()">로그아웃</button></div>
     </div>
     <span class="week-chip" id="weekChip"></span>
+    <span class="live-badge" id="liveBadge"><span class="pip"></span>실시간</span>
   </header>
 
 
@@ -1087,14 +1095,28 @@ async function setupWeeks(){
   subscribeOrders(sel.value);
   if(Object.keys(PLANS).length||document.getElementById('wkSel')) fillWeekSelect();
 }
+let liveFirst=true, liveFlashT=null;
+function flashLive(){
+  const b=document.getElementById('liveBadge');
+  if(!b) return;
+  const now=new Date();
+  const hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  if(liveFirst){ liveFirst=false; b.innerHTML='<span class="pip"></span>실시간 연결됨'; return; }
+  b.classList.add('flash');
+  b.innerHTML=`<span class="pip"></span>업데이트 ${hhmm}`;
+  clearTimeout(liveFlashT);
+  liveFlashT=setTimeout(()=>b.classList.remove('flash'),1200);
+}
 function subscribeOrders(week){
   curWeek=week;
+  liveFirst=true;
   if(unsubOrders)unsubOrders();
   unsubOrders=db.collection('orders').where('week','==',week).onSnapshot(snap=>{
     ORDERS=snap.docs.map(d=>({id:d.id,...d.data()}));
     ORDERS.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
     renderOrders(); renderMake(); renderRoute();
     if(document.getElementById('slotList').children.length) updateSlotUsage();
+    flashLive();
   },e=>console.error(e));
 }
 

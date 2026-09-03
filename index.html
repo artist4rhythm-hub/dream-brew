@@ -84,6 +84,15 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.dot{animation:none}}
 .deadline-chip.closed{background:#F6ECE9;color:#B4533C;border-color:#E7D2CB}
+.deliver-chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;
+  background:var(--sage-soft);color:var(--sage);border:1px solid #DCE8D6;border-radius:999px;
+  font-size:.76rem;font-weight:700;padding:5px 14px}
+.live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;color:var(--sage);
+  font-weight:700;margin-top:8px}
+.live-dot .pip{width:7px;height:7px;border-radius:50%;background:var(--sage);
+  box-shadow:0 0 0 0 rgba(143,175,126,.6);animation:livepulse 1.8s infinite}
+@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(143,175,126,.55)}70%{box-shadow:0 0 0 7px rgba(143,175,126,0)}100%{box-shadow:0 0 0 0 rgba(143,175,126,0)}}
+@media (prefers-reduced-motion:reduce){.live-dot .pip{animation:none}}
 .closed-card{background:#F6ECE9;border:1px solid #E7D2CB;border-radius:12px;padding:18px 16px;
   text-align:center;color:#B4533C;font-size:.9rem;margin-bottom:18px;line-height:1.7}
 .myorders-btn{background:var(--paper);border:1px solid var(--line);border-radius:999px;
@@ -347,6 +356,7 @@ button{font-family:inherit;cursor:pointer;border:none}
     <div class="leaf-divider"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 13 C6 8 7 4 11 1 C12 6 10 11 7 13z" fill="#8FAF7E"/><path d="M7 13 C7 9 5 6 2 5 C2 9 4 12 7 13z" fill="#A9C29A"/></svg></div>
     <div class="school">수원농생명과학고등학교 특수학급 실습카페</div>
     <div class="deadline-chip" id="deadlineChip"><span class="dot"></span><span id="deadlineText">마감까지 계산 중…</span></div>
+    <div class="deliver-chip" id="deliverChip" style="display:none"></div>
   </header>
 
   <main>
@@ -674,12 +684,15 @@ async function init(){
     const pd=await db.collection('plans').doc(wk).get();
     if(pd.exists) PLAN=pd.data();
   }catch(e){ console.error('plan',e); }
-  try{
-    const os=await db.collection('orders').where('week','==',wk).get();
+  // 실시간 구독: 다른 선생님 주문이 들어오면 남은 자리 자동 갱신
+  db.collection('orders').where('week','==',wk).onSnapshot(os=>{
     slotUsed={};
     os.docs.forEach(d=>{ const o=d.data();
       if(!o.canceled&&o.slot) slotUsed[o.slot]=(slotUsed[o.slot]||0)+o.cups; });
-  }catch(e){ console.error('slots',e); }
+    liveBeat();
+    renderDeliverBanner();
+    if(document.getElementById('scr-slot').classList.contains('active')) renderSlots();
+  },e=>console.error('slots',e));
   document.getElementById('menuTitle').textContent=SETTINGS.menuTitle||'오늘의 메뉴';
   let desc=SETTINGS.menuDesc||'';
   if(PLAN&&PLAN.deliverDate){
@@ -719,10 +732,12 @@ async function init(){
 /* ═════════ 홈: 배달 일정 안내 배너 ═════════ */
 function renderDeliverBanner(){
   const box=document.getElementById('deliverBanner');
-  if(!box) return;
-  if(!PLAN||!PLAN.deliverDate){ box.style.display='none'; return; }
+  const chip=document.getElementById('deliverChip');
+  if(!PLAN||!PLAN.deliverDate){ if(box)box.style.display='none'; if(chip)chip.style.display='none'; return; }
   const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
   const dt=new Date(y,m-1,d);
+  if(chip){ chip.textContent=`🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정`; chip.style.display='inline-flex'; }
+  if(!box) return;
   const slots=(PLAN.slots||[]);
   let slotHtml='';
   if(slots.length){
@@ -732,8 +747,14 @@ function renderDeliverBanner(){
       return `<span class="db-slot ${full?'full':''}">${s.name}${!full?` · <b>${left}잔</b> 남음`:' · 마감'}</span>`;
     }).join('')+'</div>';
   }
-  box.innerHTML=`<div class="db-t">🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정${slots.length?' · 받을 교시를 선택할 수 있어요':''}</div>${slotHtml}`;
+  const live=`<div class="live-dot"><span class="pip"></span>실시간 현황 · 방금 업데이트됨</div>`;
+  box.innerHTML=`<div class="db-t">🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정${slots.length?' · 받을 교시를 선택할 수 있어요':''}</div>${slotHtml}${slots.length?live:''}`;
   box.style.display='block';
+}
+let liveTimer=null;
+function liveBeat(){
+  // 첫 로딩(초기 스냅샷) 후의 갱신에만 살짝 하이라이트
+  clearTimeout(liveTimer);
 }
 
 /* ═════════ 화면 전환 ═════════ */
