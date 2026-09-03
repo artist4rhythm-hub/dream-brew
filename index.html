@@ -64,6 +64,14 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .step .num{font-size:.6rem;color:var(--gold);font-weight:700;letter-spacing:.12em;display:block;margin-top:5px}
 .step .tt{font-size:.72rem;color:var(--mocha);margin-top:2px;line-height:1.45;word-break:keep-all}
 .strip-label{font-size:.68rem;font-weight:700;color:var(--gold);letter-spacing:.22em;margin:0 2px 7px}
+.deliver-banner{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:14px;
+  padding:13px 16px;margin-bottom:16px}
+.deliver-banner .db-t{font-size:.8rem;font-weight:700;color:var(--sage);letter-spacing:.02em}
+.deliver-banner .db-slots{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.db-slot{background:#fff;border:1px solid #CFE0C7;border-radius:999px;padding:4px 12px;
+  font-size:.8rem;color:var(--brew-deep);font-weight:500}
+.db-slot b{color:var(--sage)}
+.db-slot.full{opacity:.5;text-decoration:line-through}
 .menu-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;margin-bottom:18px;scrollbar-width:none}
 .menu-strip::-webkit-scrollbar{display:none}
 .ms-chip{flex:none;background:var(--paper);border:1px solid var(--line);border-radius:999px;
@@ -188,6 +196,11 @@ button{font-family:inherit;cursor:pointer;border:none}
 .pin-box{width:52px;height:60px;border:1.5px solid var(--line);border-radius:12px;
   background:var(--paper);text-align:center;font-size:1.5rem;font-weight:700;color:var(--brew-deep)}
 .pin-box:focus{border-color:var(--dream);outline:none}
+.pin-forgot{display:block;margin:4px auto 0;background:none;border:none;
+  font-size:.8rem;color:var(--dream);text-decoration:underline;cursor:pointer;padding:6px}
+.forgot-box{display:none;background:var(--dream-soft);border:1px solid #F0D8DB;
+  border-radius:12px;padding:14px;margin:8px 0}
+.forgot-box.show{display:block}
 .me-card{background:var(--dream-soft);border:1px solid #F0D8DB;border-radius:12px;
   padding:12px 16px;font-size:.85rem;text-align:center;margin-bottom:14px}
 
@@ -350,6 +363,7 @@ button{font-family:inherit;cursor:pointer;border:none}
           <div class="step"><span class="ic">☕</span><span class="num">STEP 2</span><div class="tt">학생들이<br>정성껏 제조</div></div>
           <div class="step"><span class="ic">🚶</span><span class="num">STEP 3</span><div class="tt">선생님 자리로<br>배달</div></div>
         </div>
+        <div class="deliver-banner fu" id="deliverBanner" style="animation-delay:.15s;display:none"></div>
         <div class="fu" style="animation-delay:.2s">
           <div class="strip-label">MENU · 이번 주 메뉴</div>
           <div class="menu-strip" id="menuStrip"></div>
@@ -397,6 +411,14 @@ button{font-family:inherit;cursor:pointer;border:none}
         <h2 class="step-title">다시 오셨네요, <span id="pinName"></span> 선생님</h2>
         <p class="step-desc" style="text-align:center">설정하신 PIN 4자리를 입력해 주세요.</p>
         <div class="pin-row" id="pinBoxes"></div>
+        <button class="pin-forgot" onclick="showForgot()">PIN을 잊으셨나요?</button>
+        <div class="forgot-box" id="forgotBox">
+          <p class="hint" style="text-align:left;line-height:1.6">
+            담당 선생님께 <b>PIN 초기화</b>를 요청할 수 있어요.
+            초기화되면 다음 로그인 때 PIN을 새로 정하게 됩니다.</p>
+          <button class="btn" style="margin-top:10px" onclick="requestPinReset()">PIN 초기화 요청 보내기</button>
+          <div id="forgotSent"></div>
+        </div>
         <button class="btn ghost" onclick="backToName()">← 이름 다시 선택</button>
       </div>
     </section>
@@ -672,6 +694,7 @@ async function init(){
   renderMenu();
   document.getElementById('menuStrip').innerHTML=
     MENUS.map(m=>`<span class="ms-chip">${m.name}<b>${m.price.toLocaleString()}원</b></span>`).join('');
+  renderDeliverBanner();
   if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
   tick(); setInterval(tick,30000);
   const cs=closedState();
@@ -691,6 +714,26 @@ async function init(){
   }catch(e){ console.error('members',e); }
   renderTabs();
   renderMembers();
+}
+
+/* ═════════ 홈: 배달 일정 안내 배너 ═════════ */
+function renderDeliverBanner(){
+  const box=document.getElementById('deliverBanner');
+  if(!box) return;
+  if(!PLAN||!PLAN.deliverDate){ box.style.display='none'; return; }
+  const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  const slots=(PLAN.slots||[]);
+  let slotHtml='';
+  if(slots.length){
+    slotHtml='<div class="db-slots">'+slots.map(s=>{
+      const used=slotUsed[s.name]||0, left=s.cap-used;
+      const full=left<=0;
+      return `<span class="db-slot ${full?'full':''}">${s.name}${!full?` · <b>${left}잔</b> 남음`:' · 마감'}</span>`;
+    }).join('')+'</div>';
+  }
+  box.innerHTML=`<div class="db-t">🚶 ${m}/${d}(${DAYNAMES[dt.getDay()]}) 배달 예정${slots.length?' · 받을 교시를 선택할 수 있어요':''}</div>${slotHtml}`;
+  box.style.display='block';
 }
 
 /* ═════════ 화면 전환 ═════════ */
@@ -800,7 +843,9 @@ function selectMember(s){
   }
 }
 function showStep(id){ document.querySelectorAll('.login-step').forEach(x=>x.classList.remove('on')); document.getElementById(id).classList.add('on'); }
-function backToName(){ showStep('ls-name'); document.querySelectorAll('.pin-box').forEach(x=>x.value=''); }
+function backToName(){ showStep('ls-name'); document.querySelectorAll('.pin-box').forEach(x=>x.value='');
+  pinTries=0; const fb=document.getElementById('forgotBox'); if(fb)fb.classList.remove('show');
+  const fs=document.getElementById('forgotSent'); if(fs)fs.innerHTML=''; }
 function makeBoxes(cid,onDone){
   const c=document.getElementById(cid);
   for(let i=0;i<4;i++){
@@ -832,10 +877,31 @@ makeBoxes('setpinBoxes',async v=>{
     enterMenu();
   }catch(e){ alert('PIN 저장 중 오류가 발생했습니다. 다시 시도해 주세요.'); console.error(e); }
 });
+let pinTries=0;
 makeBoxes('pinBoxes',v=>{
-  if(v!==user.pin){ alert('PIN이 일치하지 않습니다.'); focusFirst('pinBoxes'); return; }
+  if(v!==user.pin){
+    pinTries++;
+    focusFirst('pinBoxes');
+    if(pinTries>=3){ showForgot(); }
+    else alert('PIN이 일치하지 않습니다.');
+    return;
+  }
+  pinTries=0;
   enterMenu();
 });
+function showForgot(){ document.getElementById('forgotBox').classList.add('show'); }
+async function requestPinReset(){
+  try{
+    await db.collection('messages').add({
+      kind:'note', name:user.name, memberId:user.id,
+      text:`[PIN 초기화 요청] ${user.name} 선생님이 PIN을 잊어 초기화를 요청했습니다.`,
+      pinReset:true,
+      at:firebase.firestore.FieldValue.serverTimestamp()
+    });
+    document.getElementById('forgotSent').innerHTML=
+      '<div class="sent-note">요청이 전달되었습니다. 담당 선생님이 초기화해 드릴 거예요 💌<br>잠시 후 다시 시도해 주세요.</div>';
+  }catch(e){ console.error(e); alert('요청 전송에 실패했습니다. 담당 선생님께 직접 말씀해 주세요.'); }
+}
 
 function enterMenu(){
   document.getElementById('helloText').innerHTML=`<b>${user.name}</b> 선생님, 환영합니다`;

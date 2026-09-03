@@ -162,6 +162,7 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .msg-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:#fff}
 .msg-card.review{border-left:4px solid var(--sage)}
 .msg-card.note{border-left:4px solid var(--dream)}
+.msg-card.pinreset{border-left:4px solid var(--gold);background:var(--gold-soft)}
 .msg-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .msg-who{font-weight:700;font-size:.92rem}
 .msg-when{font-size:.72rem;color:var(--mocha)}
@@ -953,15 +954,18 @@ function renderMsgs(){
     const t=m.at?new Date(m.at.seconds*1000).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     const stars=m.rating?`<span class="stars">${'★'.repeat(m.rating)}${'☆'.repeat(5-m.rating)}</span>`:'';
     box.insertAdjacentHTML('beforeend',`
-      <div class="msg-card ${m.kind}">
+      <div class="msg-card ${m.kind}${m.pinReset?' pinreset':''}">
         <div class="msg-head">
-          <span class="msg-who">${m.name} 선생님 <span class="msg-kind ${m.kind}">${m.kind==='review'?'이용 후기':'메시지'}</span></span>
+          <span class="msg-who">${m.name} 선생님 <span class="msg-kind ${m.kind}">${m.pinReset?'🔑 PIN 초기화 요청':(m.kind==='review'?'이용 후기':'메시지')}</span></span>
           <span class="msg-when">${t}</span>
         </div>
         ${stars}
         <div class="msg-body">${(m.text||'').replace(/</g,'&lt;')}</div>
         ${m.orderInfo?`<div class="msg-meta">📦 ${m.orderInfo}</div>`:''}
-        <div style="margin-top:8px"><button class="del-btn" onclick="deleteMsg('${m.id}')">삭제</button></div>
+        <div style="margin-top:8px">
+          ${m.pinReset?`<button class="btn sm" onclick="resetPinFromMsg('${m.memberId}','${m.name}','${m.id}')">PIN 초기화하기</button> `:''}
+          <button class="del-btn" onclick="deleteMsg('${m.id}')">삭제</button>
+        </div>
       </div>`);
   });
 }
@@ -1000,6 +1004,16 @@ function printMsgs(){
   window.print();
 }
 
+async function resetPinFromMsg(memberId,name,msgId){
+  if(!memberId){ alert('명단에서 해당 선생님을 찾을 수 없습니다. 명단 관리에서 직접 초기화해 주세요.'); return; }
+  if(!confirm(`${name} 선생님의 PIN을 초기화할까요?\n다음 주문 때 새 PIN을 설정하게 됩니다.`)) return;
+  try{
+    await db.collection('members').doc(memberId).update({pin:null});
+    const m=MEMBERS.find(x=>x.id===memberId); if(m)m.pin=null;
+    await db.collection('messages').doc(msgId).delete();
+    alert(`${name} 선생님의 PIN이 초기화되었습니다.`);
+  }catch(e){ alert('처리 실패'); console.error(e); }
+}
 async function deleteMsg(id){
   if(!confirm('이 내용을 삭제할까요?')) return;
   try{ await db.collection('messages').doc(id).delete(); }
