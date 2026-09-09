@@ -302,6 +302,15 @@ body[class*="season-"] header{
              radial-gradient(circle at 85% 30%,var(--halo2),transparent 45%),
              linear-gradient(180deg,#FFFCF7 0%,var(--cream) 100%)}
 body[class*="season-"] .logo-img{box-shadow:0 0 0 4px var(--ring),0 6px 20px rgba(92,74,58,.16)}
+body.season-summer .leaf-divider svg path{fill:#7FC6BC}
+body.season-autumn .leaf-divider svg path{fill:#D89A55}
+body.season-winter .leaf-divider svg path{fill:#B9C4DA}
+body.season-summer .leaf-divider::before{background:linear-gradient(90deg,transparent,#9FD3CD)}
+body.season-summer .leaf-divider::after{background:linear-gradient(90deg,#9FD3CD,transparent)}
+body.season-autumn .leaf-divider::before{background:linear-gradient(90deg,transparent,#E0B77F)}
+body.season-autumn .leaf-divider::after{background:linear-gradient(90deg,#E0B77F,transparent)}
+body.season-winter .leaf-divider::before{background:linear-gradient(90deg,transparent,#C7D0E0)}
+body.season-winter .leaf-divider::after{background:linear-gradient(90deg,#C7D0E0,transparent)}
 body.season-summer .deco path[fill]{fill:#7FC6BC}
 body.season-summer .deco path[stroke]{stroke:#5FA8A0}
 body.season-autumn .deco path[fill]{fill:#D89A55}
@@ -313,7 +322,8 @@ body[class*="season-"] .deadline-chip{background:var(--chip-bg);color:var(--chip
 .pfall{position:absolute;top:-26px;pointer-events:none;z-index:0;will-change:transform;user-select:none}
 @keyframes pfallY{to{transform:translateY(var(--fh,260px)) rotate(var(--rot,180deg))}}
 @keyframes pfallX{50%{margin-left:16px}}
-header>*:not(.pfall){position:relative;z-index:1}
+header>*:not(.pfall):not(.deco){position:relative;z-index:1}
+header .deco{z-index:0}
 @media (prefers-reduced-motion:reduce){.pfall{display:none}}
 
 /* ═══ 가로 스크롤 힌트: 더 있으면 오른쪽이 흐려짐 ═══ */
