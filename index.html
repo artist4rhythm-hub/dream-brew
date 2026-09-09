@@ -288,6 +288,34 @@ button{font-family:inherit;cursor:pointer;border:none}
 .ticket .num{font-size:.78rem;color:var(--mocha);letter-spacing:.12em}
 .ticket-body{border-top:1.5px dashed var(--line);margin-top:16px;padding-top:14px;text-align:left;font-size:.88rem}
 
+/* ═══ 계절 테마 ═══ */
+body.season-spring{--cream:#F7F1E5;--ring:#DDEAD3;--halo1:rgba(222,142,151,.16);--halo2:rgba(143,175,126,.20);
+  --chip-bg:#EFF4EB;--chip-fg:#5E8A4C;--chip-bd:#DCE8D6}
+body.season-summer{--cream:#F2F7F7;--ring:#CFE6E2;--halo1:rgba(124,147,184,.20);--halo2:rgba(93,202,165,.18);
+  --chip-bg:#E3F0EE;--chip-fg:#2F7A70;--chip-bd:#C9E2DD}
+body.season-autumn{--cream:#F8EFE2;--ring:#E8CFAE;--halo1:rgba(194,112,61,.18);--halo2:rgba(186,117,23,.16);
+  --chip-bg:#F6E4CC;--chip-fg:#96551F;--chip-bd:#EBD2B2}
+body.season-winter{--cream:#F4F5F8;--ring:#D7DEEA;--halo1:rgba(124,147,184,.22);--halo2:rgba(180,190,210,.25);
+  --chip-bg:#E7EBF3;--chip-fg:#41547E;--chip-bd:#D3DAE8}
+body[class*="season-"] header{
+  background:radial-gradient(circle at 15% 20%,var(--halo1),transparent 45%),
+             radial-gradient(circle at 85% 30%,var(--halo2),transparent 45%),
+             linear-gradient(180deg,#FFFCF7 0%,var(--cream) 100%)}
+body[class*="season-"] .logo-img{box-shadow:0 0 0 4px var(--ring),0 6px 20px rgba(92,74,58,.16)}
+body.season-summer .deco path[fill]{fill:#7FC6BC}
+body.season-summer .deco path[stroke]{stroke:#5FA8A0}
+body.season-autumn .deco path[fill]{fill:#D89A55}
+body.season-autumn .deco path[stroke]{stroke:#B87433}
+body.season-winter .deco path[fill]{fill:#B9C4DA}
+body.season-winter .deco path[stroke]{stroke:#8E9DBB}
+body[class*="season-"] .deadline-chip{background:var(--chip-bg);color:var(--chip-fg);border-color:var(--chip-bd)}
+/* 계절 파티클 (헤더 안에서만) */
+.pfall{position:absolute;top:-26px;pointer-events:none;z-index:0;will-change:transform;user-select:none}
+@keyframes pfallY{to{transform:translateY(var(--fh,260px)) rotate(var(--rot,180deg))}}
+@keyframes pfallX{50%{margin-left:16px}}
+header>*:not(.pfall){position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){.pfall{display:none}}
+
 /* ═══ 가로 스크롤 힌트: 더 있으면 오른쪽이 흐려짐 ═══ */
 .tabs,.menu-strip{
   -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
@@ -589,7 +617,7 @@ const DEFAULT_MENUS=[
 ];
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
   menus:DEFAULT_MENUS,iceOpts:[],optGroups:[],menuTitle:'오늘의 메뉴',menuDesc:'',
-  mode:'delivery',pickupPlace:'꿈Brew 카페',slogan:'꿈을 한 잔씩 우려냅니다',intro:'',doneMsg:'주문이 접수되었어요!'};
+  theme:'auto',mode:'delivery',pickupPlace:'꿈Brew 카페',slogan:'꿈을 한 잔씩 우려냅니다',intro:'',doneMsg:'주문이 접수되었어요!'};
 let PLAN=null;        // 이번 주차 일정 {deadDate,deadTime,deliverDate,slots:[{name,cap}]}
 const isPickup=()=>SETTINGS.mode==='pickup';
 const modeWord=()=>isPickup()?'픽업':'배달';   // 명사
@@ -707,6 +735,7 @@ async function init(){
     desc=`${icon} ${dm}/${dd}(${DAYNAMES[dt.getDay()]}) ${slotTxt} ${modeWord()} 예정`+(desc?` — ${desc}`:'');
   }
   // 슬로건/소개문
+  applySeason();
   const sl=document.querySelector('.tagline'); if(sl&&SETTINGS.slogan) sl.textContent=SETTINGS.slogan;
   const intro=document.querySelector('.intro-card'); if(intro&&SETTINGS.intro) intro.innerHTML=SETTINGS.intro.replace(/</g,'&lt;').replace(/\n/g,'<br>');
   document.getElementById('menuDesc').textContent=desc;
@@ -737,6 +766,48 @@ async function init(){
   }catch(e){ console.error('members',e); }
   renderTabs();
   renderMembers();
+}
+
+/* ═════════ 계절 테마 ═════════ */
+const SEASON_PARTS={
+  spring:['🌸','🌸','🌿'],
+  summer:['💧','🫧','💧'],
+  autumn:['🍁','🍂','🍃'],
+  winter:['❄️','❄','✦']
+};
+function currentSeason(){
+  const t=SETTINGS.theme||'auto';
+  if(t!=='auto') return t;
+  const m=new Date().getMonth()+1;
+  if(m>=3&&m<=5) return 'spring';
+  if(m>=6&&m<=8) return 'summer';
+  if(m>=9&&m<=11) return 'autumn';
+  return 'winter';
+}
+function applySeason(){
+  const s=currentSeason();
+  document.body.className=document.body.className.replace(/season-\w+/g,'').trim();
+  document.body.classList.add('season-'+s);
+  const head=document.querySelector('header');
+  if(!head) return;
+  head.querySelectorAll('.pfall').forEach(e=>e.remove());
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const chars=SEASON_PARTS[s]||SEASON_PARTS.autumn;
+  const rnd=(a,b)=>a+Math.random()*(b-a);
+  // 간간이 — 한 화면에 한두 개만 보이도록 적은 수 + 긴 주기
+  for(let i=0;i<3;i++){
+    const el=document.createElement('span');
+    el.className='pfall';
+    el.textContent=chars[Math.floor(Math.random()*chars.length)];
+    const dur=rnd(16,26);
+    el.style.left=rnd(6,88)+'%';
+    el.style.fontSize=Math.round(rnd(13,20))+'px';
+    el.style.opacity=rnd(.35,.6).toFixed(2);
+    el.style.setProperty('--rot',Math.round(rnd(-240,240))+'deg');
+    el.style.setProperty('--fh',(head.offsetHeight+60)+'px');
+    el.style.animation=`pfallY ${dur.toFixed(1)}s linear ${(-rnd(0,dur)).toFixed(1)}s infinite, pfallX ${rnd(4,7).toFixed(1)}s ease-in-out infinite`;
+    head.appendChild(el);
+  }
 }
 
 /* ═════════ 홈: 배달 일정 안내 배너 ═════════ */

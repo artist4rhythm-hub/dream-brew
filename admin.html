@@ -282,8 +282,29 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
 .lb-brand{position:absolute;bottom:1.6mm;right:3mm;font-size:6pt;color:#c9bba6;letter-spacing:.14em}
 .cut-note{font-size:8.5pt;color:#7a8a72;text-align:center;margin:2mm 0 3mm}
 /* 명단 개별 편집 */
-.mb-search{display:flex;gap:8px;margin-bottom:10px}
-.mb-search input{flex:1}
+.mb-search{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.mb-search input{flex:1;min-width:150px}
+.zone{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:8px;background:#fff}
+.zone-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 14px;cursor:pointer;background:var(--cream);flex-wrap:wrap}
+.zone.open .zone-head{background:var(--gold-soft)}
+.zone-name{font-weight:700;font-size:.95rem;display:flex;align-items:center;gap:8px}
+.zone-cnt{font-size:.72rem;background:#fff;color:var(--mocha);border:1px solid var(--line);
+  border-radius:999px;padding:1px 9px;font-weight:500}
+.zone-body{display:none;padding:10px 12px 12px}
+.zone.open .zone-body{display:block}
+.room-cap{font-size:.72rem;color:var(--gold);font-weight:700;margin:8px 2px 5px}
+.mcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:7px}
+.mcard{background:var(--cream);border-radius:10px;padding:9px 11px;display:flex;
+  justify-content:space-between;align-items:center;gap:8px}
+.mcard .nm2{font-size:.9rem;font-weight:700}
+.mcard .du2{font-size:.72rem;color:var(--mocha);margin-top:1px}
+.mcard .acts{display:flex;gap:3px;flex:none}
+.mcard .acts button{width:26px;height:26px;border-radius:7px;border:1px solid var(--line);
+  background:#fff;font-size:.76rem;line-height:1;padding:0}
+.add-box{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:12px;padding:14px;margin-bottom:12px}
+.arch-card{background:#F5F0E6;border:1px dashed var(--line);border-radius:10px;padding:9px 11px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
 .mb-list{max-height:52vh;overflow-y:auto;padding:2px}
 .mb-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
   padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-bottom:6px;background:#fff}
@@ -457,6 +478,21 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         픽업 시간대(교시)는 <b>📅 주차별 일정</b>에서 교시를 설정하면 그대로 픽업 시간이 됩니다.</p>
       </div>
       <div class="set-group">
+        <h4>🍁 홈 화면 계절 테마</h4>
+        <div class="set-row">
+          <label>테마</label>
+          <select id="setTheme" style="flex:1">
+            <option value="auto">자동 (날짜에 맞춰 바뀜)</option>
+            <option value="spring">🌸 봄 (3~5월)</option>
+            <option value="summer">🌊 여름 (6~8월)</option>
+            <option value="autumn">🍁 가을 (9~11월)</option>
+            <option value="winter">❄️ 겨울 (12~2월)</option>
+          </select>
+        </div>
+        <p class="hint">홈 화면의 색감·로고 테두리·배경에 떨어지는 장식이 계절에 맞춰 바뀝니다.
+        <b>자동</b>으로 두면 날짜에 따라 알아서 전환되고, 특정 계절로 고정할 수도 있어요.</p>
+      </div>
+      <div class="set-group">
         <h4>⏰ 기본 주문 마감 <span style="font-size:.7rem;color:var(--mocha);font-weight:400">(주차별 일정이 없을 때 적용)</span></h4>
         <div class="set-row">
           <label>마감 요일</label>
@@ -590,11 +626,13 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <p class="hint" id="rosterStatus" style="color:var(--sage);font-weight:700"></p>
       </div>
       <div class="set-group">
-        <h4>✏️ 선생님 정보 · 자리 변경</h4>
-        <p class="hint" style="margin-bottom:10px">이름을 검색해 <b>[수정]</b>을 누르면 자리(배달 위치)·구역·담당·내선을 바로 바꿀 수 있습니다.
-        여러 명을 한 번에 옮기려면 체크 후 아래 <b>일괄 이동</b>을 사용하세요.</p>
+        <h4>✏️ 선생님 명단 관리</h4>
+        <p class="hint" style="margin-bottom:10px">구역을 눌러 펼치면 그 구역 선생님들이 보입니다.
+        전근 가신 분은 <b>보관함</b>으로 옮기면 명단에서만 사라지고 기록은 남습니다.</p>
         <div class="mb-search">
           <input type="search" id="mbSearch" placeholder="이름 검색 (예: 장선진)" oninput="renderMemberEdit()">
+          <button class="btn sm" onclick="openAddMember()">＋ 선생님 추가</button>
+          <button class="btn line sm" onclick="toggleArchive()" id="archBtn">🗄 보관함</button>
           <button class="btn line sm" onclick="toggleBulk()">☑ 일괄 이동</button>
         </div>
         <div class="bulk-box" id="bulkBox" style="display:none">
@@ -610,6 +648,24 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
           <div class="mb-actions">
             <button class="btn sm" onclick="applyBulkMove()">선택한 <b id="bulkCount">0</b>명 이동</button>
             <button class="btn line sm" onclick="toggleBulk()">취소</button>
+          </div>
+        </div>
+        <div class="add-box" id="addBox" style="display:none">
+          <b style="font-size:.9rem">＋ 새 선생님 등록</b>
+          <div class="set-row" style="margin-top:10px">
+            <label>이름</label><input type="text" id="addName" placeholder="예: 홍길동" style="flex:1">
+            <label style="min-width:auto">담당</label><input type="text" id="addDuty" placeholder="예: 기획" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>배달 위치</label><input type="text" id="addLoc" list="locOptions" placeholder="예: 제1연구실(2층 서편)" style="flex:1">
+          </div>
+          <div class="set-row">
+            <label>구역(탭)</label><input type="text" id="addTab" list="tabOptions" placeholder="예: 제1연구실" style="flex:1">
+            <label style="min-width:auto">내선</label><input type="text" id="addExt" placeholder="320" style="flex:.6">
+          </div>
+          <div class="mb-actions">
+            <button class="btn sm" onclick="saveNewMember()">등록하기</button>
+            <button class="btn line sm" onclick="openAddMember(true)">취소</button>
           </div>
         </div>
         <datalist id="locOptions"></datalist>
@@ -693,6 +749,7 @@ let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay
   ],
   menuTitle:'오늘의 메뉴',
   menuDesc:'',
+  theme:'auto',
   mode:'delivery', pickupPlace:'통합교육실2 앞 꿈Brew 카페',
   slogan:'꿈을 한 잔씩 우려냅니다', intro:'', doneMsg:'주문이 접수되었어요!'};
 let PLANS={};        // week -> {deadAt, deliverDate, slots:[{name,cap}]}
@@ -1438,6 +1495,7 @@ function fillSettingsUI(){
   document.getElementById('modePickup').checked=(mode==='pickup');
   document.getElementById('setPickupPlace').value=SETTINGS.pickupPlace||'';
   document.getElementById('pickupPlaceRow').style.display=(mode==='pickup')?'flex':'none';
+  document.getElementById('setTheme').value=SETTINGS.theme||'auto';
   document.getElementById('setSlogan').value=SETTINGS.slogan||'';
   document.getElementById('setIntro').value=SETTINGS.intro||'';
   document.getElementById('setDoneMsg').value=SETTINGS.doneMsg||'';
@@ -1488,6 +1546,7 @@ async function saveSettings(){
     menuDesc:document.getElementById('setMenuDesc').value.trim(),
     mode:document.getElementById('modePickup').checked?'pickup':'delivery',
     pickupPlace:document.getElementById('setPickupPlace').value.trim()||'꿈Brew 카페',
+    theme:document.getElementById('setTheme').value,
     slogan:document.getElementById('setSlogan').value.trim()||'꿈을 한 잔씩 우려냅니다',
     intro:document.getElementById('setIntro').value.trim(),
     doneMsg:document.getElementById('setDoneMsg').value.trim()||'주문이 접수되었어요!',
@@ -1736,8 +1795,8 @@ function printSheet(){
 }
 
 
-/* ═════════ 선생님 정보 · 자리 변경 ═════════ */
-let bulkMode=false, bulkSel=new Set(), editingId=null;
+/* ═════════ 선생님 명단 관리 ═════════ */
+let bulkMode=false, bulkSel=new Set(), editingId=null, openZones=new Set(), archiveMode=false, ARCHIVED=[];
 
 function fillDatalists(){
   const locs=[...new Set(MEMBERS.map(m=>m.loc).filter(Boolean))].sort();
@@ -1746,78 +1805,200 @@ function fillDatalists(){
   document.getElementById('tabOptions').innerHTML=tabs.map(v=>`<option value="${v}">`).join('');
 }
 function toggleBulk(){
-  bulkMode=!bulkMode;
-  bulkSel.clear();
+  bulkMode=!bulkMode; bulkSel.clear(); editingId=null;
   document.getElementById('bulkBox').style.display=bulkMode?'block':'none';
   document.getElementById('bulkBox').classList.toggle('on',bulkMode);
-  editingId=null;
   renderMemberEdit();
 }
+function toggleZone(z){
+  openZones.has(z)?openZones.delete(z):openZones.add(z);
+  renderMemberEdit();
+}
+function openAddMember(close){
+  const box=document.getElementById('addBox');
+  const show=close?false:box.style.display!=='block';
+  box.style.display=show?'block':'none';
+  if(show) document.getElementById('addName').focus();
+}
+function memberCard(m){
+  if(editingId===m.id){
+    return `<div class="mcard" style="display:block;background:#fff;border:1.5px solid var(--dream)">
+      <div class="set-row" style="margin-bottom:6px">
+        <label style="min-width:44px">이름</label>
+        <input type="text" id="ed-name" value="${(m.name||'').replace(/"/g,'&quot;')}" style="flex:1">
+      </div>
+      <div class="set-row" style="margin-bottom:6px">
+        <label style="min-width:44px">담당</label>
+        <input type="text" id="ed-duty" value="${(m.duty||'').replace(/"/g,'&quot;')}" style="flex:1">
+      </div>
+      <div class="set-row" style="margin-bottom:6px">
+        <label style="min-width:44px">위치</label>
+        <input type="text" id="ed-loc" list="locOptions" value="${(m.loc||'').replace(/"/g,'&quot;')}" style="flex:1">
+      </div>
+      <div class="set-row" style="margin-bottom:6px">
+        <label style="min-width:44px">구역</label>
+        <input type="text" id="ed-tab" list="tabOptions" value="${(m.tab||'').replace(/"/g,'&quot;')}" style="flex:1">
+        <label style="min-width:auto">내선</label>
+        <input type="text" id="ed-ext" value="${m.ext||''}" style="flex:.6">
+      </div>
+      <div class="mb-actions">
+        <button class="btn sm" onclick="saveMember('${m.id}')">저장</button>
+        <button class="btn line sm" onclick="editingId=null;renderMemberEdit()">취소</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="mcard">
+    ${bulkMode?`<input type="checkbox" class="mb-check" ${bulkSel.has(m.id)?'checked':''} onchange="toggleBulkSel('${m.id}',this)">`:''}
+    <span style="min-width:0">
+      <div class="nm2">${m.name}</div>
+      <div class="du2">${m.duty||'-'} · 내선 ${m.ext||'-'}</div>
+    </span>
+    ${bulkMode?'':`<span class="acts">
+      <button title="수정" onclick="editingId='${m.id}';renderMemberEdit()">✏️</button>
+      <button title="보관함으로" onclick="archiveMember('${m.id}')">🗄</button>
+    </span>`}
+  </div>`;
+}
 function renderMemberEdit(){
+  const list=document.getElementById('mbList'); if(!list) return;
+  if(archiveMode){ renderArchive(); return; }
   const q=document.getElementById('mbSearch').value.trim();
-  const list=document.getElementById('mbList'); list.innerHTML='';
-  if(!MEMBERS.length){ list.innerHTML='<p class="hint" style="padding:14px 0">명단이 비어 있습니다. 위에서 엑셀로 등록해 주세요.</p>'; return; }
-  const pool=q?MEMBERS.filter(m=>m.name.includes(q)||(m.loc||'').includes(q)||(m.duty||'').includes(q)):MEMBERS;
-  if(!pool.length){ list.innerHTML='<p class="hint" style="padding:14px 0">검색 결과가 없습니다.</p>'; return; }
-  pool.forEach(m=>{
-    if(editingId===m.id){
-      list.insertAdjacentHTML('beforeend',`
-        <div class="mb-edit on">
-          <b style="font-size:.92rem">${m.name} 선생님 정보 수정</b>
-          <div class="set-row" style="margin-top:10px">
-            <label>배달 위치</label>
-            <input type="text" id="ed-loc" list="locOptions" value="${(m.loc||'').replace(/"/g,'&quot;')}" style="flex:1">
-          </div>
-          <div class="set-row">
-            <label>구역(탭)</label>
-            <input type="text" id="ed-tab" list="tabOptions" value="${(m.tab||'').replace(/"/g,'&quot;')}" style="flex:1">
-          </div>
-          <div class="set-row">
-            <label>담당</label>
-            <input type="text" id="ed-duty" value="${(m.duty||'').replace(/"/g,'&quot;')}" style="flex:1">
-          </div>
-          <div class="set-row">
-            <label>내선</label>
-            <input type="text" id="ed-ext" value="${m.ext||''}" style="flex:1">
-          </div>
-          <div class="mb-actions">
-            <button class="btn sm" onclick="saveMember('${m.id}')">저장</button>
-            <button class="btn line sm" onclick="editingId=null;renderMemberEdit()">취소</button>
-          </div>
-        </div>`);
-      return;
-    }
+  list.innerHTML='';
+  if(!MEMBERS.length){ list.innerHTML='<p class="hint" style="padding:14px 0">명단이 비어 있습니다. 위에서 엑셀로 등록하거나 [＋ 선생님 추가]를 눌러 주세요.</p>'; return; }
+  if(q){
+    const pool=MEMBERS.filter(m=>m.name.includes(q)||(m.loc||'').includes(q)||(m.duty||'').includes(q));
+    list.innerHTML=pool.length
+      ? `<div class="mcards">${pool.map(memberCard).join('')}</div>`
+      : '<p class="hint" style="padding:14px 0">검색 결과가 없습니다.</p>';
+    if(bulkMode)document.getElementById('bulkCount').textContent=bulkSel.size;
+    return;
+  }
+  const zones=[];
+  MEMBERS.forEach(m=>{ const z=m.tab||'기타'; if(!zones.includes(z))zones.push(z); });
+  zones.forEach(z=>{
+    const mem=MEMBERS.filter(m=>(m.tab||'기타')===z);
+    const open=openZones.has(z);
+    const rooms=[];
+    mem.forEach(m=>{ const r=m.loc||'-'; if(!rooms.includes(r))rooms.push(r); });
+    const body=rooms.map(r=>`
+      <div class="room-cap">${r}</div>
+      <div class="mcards">${mem.filter(m=>(m.loc||'-')===r).map(memberCard).join('')}</div>`).join('');
     list.insertAdjacentHTML('beforeend',`
-      <div class="mb-row">
-        ${bulkMode?`<input type="checkbox" class="mb-check" ${bulkSel.has(m.id)?'checked':''} onchange="toggleBulkSel('${m.id}',this)">`:''}
-        <span class="mb-info">
-          <span class="nm">${m.name}<span class="du">${m.duty||''}</span></span>
-          <div class="lo">📍 <b>${m.loc||'-'}</b> · ${m.tab||'-'} · 내선 ${m.ext||'-'}</div>
-        </span>
-        ${bulkMode?'':`<button class="btn line sm" onclick="editingId='${m.id}';renderMemberEdit()">수정</button>`}
+      <div class="zone ${open?'open':''}">
+        <div class="zone-head" onclick="toggleZone('${z.replace(/'/g,"")}')">
+          <span class="zone-name">${open?'▾':'▸'} ${z}<span class="zone-cnt">${mem.length}명</span></span>
+          <span style="font-size:.72rem;color:var(--mocha)">${rooms.length}개 자리</span>
+        </div>
+        <div class="zone-body">${body}</div>
       </div>`);
   });
-  document.getElementById('bulkCount').textContent=bulkSel.size;
+  if(bulkMode)document.getElementById('bulkCount').textContent=bulkSel.size;
 }
 function toggleBulkSel(id,el){
   if(el.checked) bulkSel.add(id); else bulkSel.delete(id);
   document.getElementById('bulkCount').textContent=bulkSel.size;
 }
+async function saveNewMember(){
+  const name=document.getElementById('addName').value.trim();
+  const duty=document.getElementById('addDuty').value.trim();
+  const loc=document.getElementById('addLoc').value.trim();
+  const tab=document.getElementById('addTab').value.trim()||'기타';
+  const ext=document.getElementById('addExt').value.trim();
+  if(!name||!loc){ alert('이름과 배달 위치는 꼭 입력해 주세요.'); return; }
+  if(MEMBERS.some(m=>m.name===name)){ alert('같은 이름의 선생님이 이미 있습니다.\n동명이인은 이름 뒤에 구분자를 붙여 주세요. (예: 김민수A)'); return; }
+  try{
+    const idx=MEMBERS.length?Math.max(...MEMBERS.map(m=>m.idx||0))+1:0;
+    await db.collection('members').doc(name).set({name,duty,loc,tab,ext,coupons:0,pin:null,idx});
+    ['addName','addDuty','addLoc','addTab','addExt'].forEach(x=>document.getElementById(x).value='');
+    openAddMember(true);
+    openZones.add(tab);
+    alert(`${name} 선생님이 등록되었습니다.`);
+    loadMembers();
+  }catch(e){ alert('등록 실패'); console.error(e); }
+}
 async function saveMember(id){
   const m=MEMBERS.find(x=>x.id===id);
+  const name=document.getElementById('ed-name').value.trim();
   const loc=document.getElementById('ed-loc').value.trim();
   const tab=document.getElementById('ed-tab').value.trim()||'기타';
   const duty=document.getElementById('ed-duty').value.trim();
   const ext=document.getElementById('ed-ext').value.trim();
-  if(!loc){ alert('배달 위치를 입력해 주세요.'); return; }
+  if(!name||!loc){ alert('이름과 배달 위치를 입력해 주세요.'); return; }
   try{
-    await db.collection('members').doc(id).update({loc,tab,duty,ext});
-    Object.assign(m,{loc,tab,duty,ext});
+    if(name!==m.name){
+      if(MEMBERS.some(x=>x.name===name)){ alert('같은 이름의 선생님이 이미 있습니다.'); return; }
+      if(!confirm(`이름을 '${m.name}' → '${name}'(으)로 바꿀까요?\n쿠폰·PIN은 그대로 옮겨집니다.`)) return;
+      await db.collection('members').doc(name).set(
+        {name,duty,loc,tab,ext,coupons:m.coupons||0,pin:m.pin||null,phone:m.phone||'',idx:m.idx||0});
+      await db.collection('members').doc(m.id).delete();
+    }else{
+      await db.collection('members').doc(id).update({loc,tab,duty,ext});
+    }
     editingId=null;
-    fillDatalists();
-    renderMemberEdit();
-    alert(`${m.name} 선생님 정보가 변경되었습니다.\n다음 주문부터 새 위치로 배달됩니다.`);
+    openZones.add(tab);
+    alert('저장되었습니다.');
+    loadMembers();
   }catch(e){ alert('저장 실패'); console.error(e); }
+}
+async function archiveMember(id){
+  const m=MEMBERS.find(x=>x.id===id);
+  if(!m) return;
+  if(!confirm(`${m.name} 선생님을 보관함으로 옮길까요?\n명단에서는 사라지지만 지난 주문 기록은 그대로 남습니다.\n보관함에서 언제든 복원할 수 있어요.`)) return;
+  try{
+    await db.collection('members_archive').doc(m.id).set({...m, archivedAt:FV.serverTimestamp(), archivedBy:ADMIN.name});
+    await db.collection('members').doc(m.id).delete();
+    alert(`${m.name} 선생님이 보관함으로 이동했습니다.`);
+    loadMembers();
+  }catch(e){ alert('처리 실패'); console.error(e); }
+}
+async function toggleArchive(){
+  archiveMode=!archiveMode;
+  document.getElementById('archBtn').textContent=archiveMode?'← 명단으로':'🗄 보관함';
+  document.getElementById('addBox').style.display='none';
+  if(archiveMode){
+    try{
+      const snap=await db.collection('members_archive').get();
+      ARCHIVED=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }catch(e){ console.error(e); ARCHIVED=[]; }
+  }
+  renderMemberEdit();
+}
+function renderArchive(){
+  const list=document.getElementById('mbList');
+  if(!ARCHIVED.length){ list.innerHTML='<p class="hint" style="padding:14px 0">보관함이 비어 있습니다.</p>'; return; }
+  list.innerHTML='<p class="hint" style="margin-bottom:8px">전근·퇴직 등으로 보관된 선생님입니다. 복원하면 명단으로 돌아갑니다.</p>'+
+    ARCHIVED.map(m=>`
+      <div class="arch-card">
+        <span><b style="font-size:.9rem">${m.name}</b>
+          <span style="font-size:.74rem;color:var(--mocha)"> ${m.duty||''} · ${m.loc||''}</span></span>
+        <span style="display:flex;gap:6px">
+          <button class="btn line sm" onclick="restoreMember('${m.id}')">복원</button>
+          <button class="del-btn" onclick="purgeMember('${m.id}')">완전 삭제</button>
+        </span>
+      </div>`).join('');
+}
+async function restoreMember(id){
+  const m=ARCHIVED.find(x=>x.id===id);
+  if(!m) return;
+  try{
+    const {archivedAt,archivedBy,...rest}=m;
+    await db.collection('members').doc(m.id).set(rest);
+    await db.collection('members_archive').doc(m.id).delete();
+    ARCHIVED=ARCHIVED.filter(x=>x.id!==id);
+    alert(`${m.name} 선생님이 명단으로 복원되었습니다.`);
+    renderMemberEdit();
+    loadMembers();
+  }catch(e){ alert('복원 실패'); console.error(e); }
+}
+async function purgeMember(id){
+  const m=ARCHIVED.find(x=>x.id===id);
+  if(!m) return;
+  if(!confirm(`${m.name} 선생님을 완전히 삭제할까요?\n이 작업은 되돌릴 수 없습니다. (지난 주문 기록은 그대로 남습니다)`)) return;
+  try{
+    await db.collection('members_archive').doc(id).delete();
+    ARCHIVED=ARCHIVED.filter(x=>x.id!==id);
+    renderMemberEdit();
+  }catch(e){ alert('삭제 실패'); console.error(e); }
 }
 async function applyBulkMove(){
   const loc=document.getElementById('bulkLoc').value.trim();
@@ -1832,8 +2013,7 @@ async function applyBulkMove(){
     bulkSel.forEach(id=>batch.update(db.collection('members').doc(id),upd));
     await batch.commit();
     bulkSel.forEach(id=>{ const m=MEMBERS.find(x=>x.id===id); if(m) Object.assign(m,upd); });
-    toggleBulk();
-    fillDatalists();
+    toggleBulk(); fillDatalists();
     alert(`${names.length}명의 자리가 변경되었습니다.`);
   }catch(e){ alert('이동 실패'); console.error(e); }
 }
