@@ -120,6 +120,14 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
   border-radius:8px;background:#fff;color:var(--brew-deep);max-width:150px}
 /* 배달 교시 선택 */
 .slot-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.take-note{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:12px;
+  padding:11px 14px;margin-bottom:14px;font-size:.84rem;color:var(--sage);font-weight:700;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.take-note button{background:#fff;border:1px solid #DCE8D6;border-radius:8px;
+  padding:4px 10px;font-size:.74rem;color:var(--sage);font-weight:700}
+.day-cap{font-size:.82rem;font-weight:700;color:var(--gold);margin:10px 2px 2px;
+  display:flex;align-items:center;gap:8px}
+.day-cap::after{content:'';flex:1;height:1px;background:var(--line)}
 .slot-btn{display:flex;justify-content:space-between;align-items:center;width:100%;
   background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;
   font-size:.95rem;color:var(--brew-deep);font-family:inherit;text-align:left}
@@ -480,6 +488,7 @@ header .deco{z-index:0}
           <button class="myorders-btn" onclick="openMyOrders()">📋 내 주문</button>
         </span>
       </div>
+      <div class="take-note" id="takeNote" style="display:none"></div>
       <h2 class="step-title" id="menuTitle">오늘의 메뉴</h2>
       <p class="step-desc" id="menuDesc"></p>
       <div id="menuList"></div>
@@ -521,8 +530,8 @@ header .deco{z-index:0}
       <p class="step-desc" id="slotDesc">받을 교시를 선택해 주세요.</p>
       <div class="slot-list" id="slotList"></div>
       <div style="margin-top:18px">
-        <button class="btn" id="slotNextBtn" disabled onclick="slotNext()">다음</button>
-        <button class="btn ghost" onclick="go('scr-cart')">← 주문서로</button>
+        <button class="btn" id="slotNextBtn" disabled onclick="slotNext()">메뉴 고르러 가기</button>
+        <button class="btn ghost" onclick="backFromSlot()">← 이전</button>
       </div>
     </section>
 
@@ -633,7 +642,7 @@ const isPickup=()=>SETTINGS.mode==='pickup';
 const modeWord=()=>isPickup()?'픽업':'배달';   // 명사
 const takeVerb=()=>isPickup()?'픽업':'배달';
 let slotUsed={};      // 교시별 이미 주문된 잔 수
-let chosenSlot=null;
+let chosenSlot=null, chosenDate=null;
 const optSel={};      // key: `${menuId}_${temp}_${cupIndex}_${groupId}` -> 값
 function optGroups(){
   let g=SETTINGS.optGroups;
@@ -683,6 +692,13 @@ function weekKey(){
 const DAYNAMES=['일','월','화','수','목','금','토'];
 function closedState(){
   if(SETTINGS.paused) return {closed:true,msg:SETTINGS.pauseMsg||'',until:SETTINGS.pauseUntil||''};
+  if(PLAN&&PLAN.openDate){
+    const [oy,om,od]=PLAN.openDate.split('-').map(Number);
+    const [oh,omin]=(PLAN.openTime||'09:00').split(':').map(Number);
+    const open=new Date(oy,om-1,od,oh,omin,0,0);
+    if(new Date()<open)
+      return {closed:true,msg:`주문은 ${om}/${od} ${PLAN.openTime||'09:00'}부터 받습니다.`,until:''};
+  }
   if(nextDeadline()-new Date()<=0)
     return {closed:true,msg:'이번 주 주문 마감 시간이 지났습니다. 다음 주에 만나요!',until:''};
   const f=SETTINGS.pauseFrom||'', u=SETTINGS.pauseUntil||'';
@@ -730,7 +746,10 @@ async function init(){
   db.collection('orders').where('week','==',wk).onSnapshot(os=>{
     slotUsed={};
     os.docs.forEach(d=>{ const o=d.data();
-      if(!o.canceled&&o.slot) slotUsed[o.slot]=(slotUsed[o.slot]||0)+o.cups; });
+      if(!o.canceled&&o.slot){
+        const k=(o.takeDate||(PLAN&&PLAN.deliverDate)||'')+'|'+o.slot;
+        slotUsed[k]=(slotUsed[k]||0)+o.cups;
+      }});
     liveBeat();
     renderDeliverBanner();
     if(document.getElementById('scr-slot').classList.contains('active')) renderSlots();
@@ -851,51 +870,10 @@ function liveBeat(){
 }
 
 /* ═════════ 화면 전환 ═════════ */
-function goAfterCart(){
-  if(PLAN&&PLAN.slots&&PLAN.slots.length) go('scr-slot');
-  else if(isPickup()) go('scr-pay');
-  else go('scr-seat');
-}
-function slotNext(){ isPickup()?go('scr-pay'):go('scr-seat'); }
-function payBack(){
-  if(isPickup()){ (PLAN&&PLAN.slots&&PLAN.slots.length)?go('scr-slot'):go('scr-cart'); }
-  else go('scr-seat');
-}
-function renderSlots(){
-  const box=document.getElementById('slotList'); box.innerHTML='';
-  const need=cupCount();
-  const st=document.getElementById('slotTitle'); if(st) st.textContent=isPickup()?'언제 픽업하시겠어요?':'언제 받으시겠어요?';
-  if(PLAN&&PLAN.deliverDate){
-    const [y,m,d]=PLAN.deliverDate.split('-').map(Number);
-    const dt=new Date(y,m-1,d);
-    document.getElementById('slotDesc').innerHTML=
-      `<b>${m}/${d}(${DAYNAMES[dt.getDay()]})</b> ${modeWord()} 예정입니다. ${isPickup()?'픽업하실 시간대':'받으실 교시'}를 선택해 주세요.`;
-  }else{
-    document.getElementById('slotDesc').textContent=`${isPickup()?'픽업하실 시간대':'받으실 교시'}를 선택해 주세요.`;
-  }
-  (PLAN.slots||[]).forEach(s=>{
-    const used=slotUsed[s.name]||0;
-    const left=s.cap-used;
-    const full=left<need;
-    const b=document.createElement('button');
-    b.className='slot-btn'+(chosenSlot===s.name?' sel':'');
-    b.disabled=full;
-    b.innerHTML=`<span>${s.name}</span>
-      <span class="slot-cap ${full?'full':''}">${full?(left<=0?'마감되었어요':`남은 자리 ${left}잔`):`<b>${left}잔</b> 남음 · 정원 ${s.cap}잔`}</span>`;
-    b.onclick=()=>{
-      chosenSlot=s.name;
-      box.querySelectorAll('.slot-btn').forEach(x=>x.classList.remove('sel'));
-      b.classList.add('sel');
-      document.getElementById('slotNextBtn').disabled=false;
-    };
-    box.appendChild(b);
-  });
-  if(!(PLAN.slots||[]).length) box.innerHTML='<p class="hint">배달 교시가 아직 정해지지 않았습니다.</p>';
-  document.getElementById('slotNextBtn').disabled=!chosenSlot;
-}
 function go(id){
   if(id==='scr-cart') renderCart();
   if(id==='scr-slot') renderSlots();
+  if(id==='scr-menu') renderTakeNote();
   if(id==='scr-seat') renderSeat();
   if(id==='scr-pay') renderPay();
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -903,7 +881,6 @@ function go(id){
   document.getElementById('cartBar').classList.toggle('show', id==='scr-menu' && cupCount()>0);
   window.scrollTo({top:0});
 }
-
 /* ═════════ 1. 로그인 ═════════ */
 const tabBar=document.getElementById('tabBar');
 let curTab=TABS[0];
@@ -1025,16 +1002,16 @@ async function requestPinReset(){
       '<div class="sent-note">요청이 전달되었습니다. 담당 선생님이 초기화해 드릴 거예요 💌<br>잠시 후 다시 시도해 주세요.</div>';
   }catch(e){ console.error(e); alert('요청 전송에 실패했습니다. 담당 선생님께 직접 말씀해 주세요.'); }
 }
-
 function enterMenu(){
   document.getElementById('helloText').innerHTML=`<b>${user.name}</b> 선생님, 환영합니다`;
   const cb=document.getElementById('couponBadge');
   cb.style.display=(user.coupons||0)>0?'inline-block':'none';
   cb.textContent=`무료쿠폰 ${user.coupons||0}잔`;
-  go('scr-menu');
+  const days=planDays();
+  if(days.length) go('scr-slot'); else go('scr-menu');
 }
 
-/* ═════════ 2. 메뉴 (ICE/HOT 개별 수량) ═════════ */
+/* ═════════ 2. 메뉴 (ICE/HOT 개별 수량 + 옵션) ═════════ */
 function renderMenu(){
   const menuList=document.getElementById('menuList'); menuList.innerHTML='';
   MENUS.forEach(m=>{
@@ -1071,12 +1048,12 @@ function renderIcePicks(id){
   if(!box) return;
   let html='';
   ['ice','hot'].forEach(t=>{
-    const n=cart[`${id}_${t}`]||0;
+    const n=cart[id+'_'+t]||0;
     const gs=groupsFor(t);
     if(!n||!gs.length) return;
     for(let i=0;i<n;i++){
-      const cupLabel=`${t==='ice'?'ICE':'HOT'}${n>1?' '+(i+1)+'잔째':''}`;
-      html+=`<div class="cup-opt"><div class="cup-ttl">${cupLabel}</div>`;
+      if(n>1||['ice','hot'].filter(x=>cart[id+'_'+x]).length>1)
+        html+=`<div style="font-size:.72rem;color:var(--gold);font-weight:700;margin:6px 0 2px">${t.toUpperCase()}${n>1?' '+(i+1)+'잔째':''}</div>`;
       gs.forEach(g=>{
         const k=`${id}_${t}_${i}_${g.id}`;
         const cur=optSel[k]||g.opts[0];
@@ -1088,17 +1065,15 @@ function renderIcePicks(id){
           </select>
         </div>`;
       });
-      html+='</div>';
     }
   });
-  if(!html){ box.classList.remove('show'); box.innerHTML=''; return; }
-  box.classList.add('show');
   box.innerHTML=html;
+  box.classList.toggle('show',!!html);
 }
 function cupCount(){ return Object.values(cart).reduce((s,v)=>s+v,0); }
 function rawTotal(){
   return Object.entries(cart).reduce((s,[k,q])=>{
-    const m=M(k.split('_')[0]); return s+m.price*q; },0);
+    const m=M(k.split('_')[0]); return s+(m?m.price*q:0); },0);
 }
 function renderCartBar(){
   const n=cupCount();
@@ -1139,6 +1114,64 @@ function renderCart(){
   document.getElementById('sumRaw').textContent=raw.toLocaleString()+'원';
   document.getElementById('sumDisc').textContent='− '+disc.toLocaleString()+'원';
   document.getElementById('sumGrand').textContent=(raw-disc).toLocaleString()+'원';
+}
+function goAfterCart(){
+  if(isPickup()) go('scr-pay'); else go('scr-seat');
+}
+
+function planDays(){
+  if(!PLAN) return [];
+  if(PLAN.days&&PLAN.days.length) return PLAN.days;
+  if(PLAN.deliverDate) return [{date:PLAN.deliverDate,slots:PLAN.slots||[]}];
+  return [];
+}
+function slotNext(){ go('scr-menu'); }
+function renderTakeNote(){
+  const n=document.getElementById('takeNote');
+  if(!n) return;
+  if(!chosenDate||!chosenSlot){ n.style.display='none'; return; }
+  const [y,m,d]=chosenDate.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  n.innerHTML=`<span>${isPickup()?'🥤':'🚶'} ${m}/${d}(${DAYNAMES[dt.getDay()]}) ${chosenSlot} ${modeWord()}</span>
+    <button onclick="go('scr-slot')">변경</button>`;
+  n.style.display='flex';
+}
+function backFromSlot(){ location.reload(); }
+function slotLeft(date,name,cap){
+  const used=(slotUsed[date+'|'+name]||0);
+  return cap-used;
+}
+function renderSlots(){
+  const box=document.getElementById('slotList'); box.innerHTML='';
+  const st=document.getElementById('slotTitle');
+  if(st) st.textContent=isPickup()?'언제 픽업하시겠어요?':'언제 받으시겠어요?';
+  const sd=document.getElementById('slotDesc');
+  if(sd) sd.textContent=`${modeWord()} 받으실 날짜와 시간을 먼저 골라 주세요. 그다음 메뉴를 담습니다.`;
+  const days=planDays();
+  if(!days.length){ box.innerHTML='<p class="hint">수령 일정이 아직 등록되지 않았습니다.</p>'; return; }
+  days.forEach(d=>{
+    const [y,m,dd]=d.date.split('-').map(Number);
+    const dt=new Date(y,m-1,dd);
+    box.insertAdjacentHTML('beforeend',
+      `<div class="day-cap">${m}/${dd}(${DAYNAMES[dt.getDay()]})</div>`);
+    (d.slots||[]).forEach(s=>{
+      const left=slotLeft(d.date,s.name,s.cap);
+      const full=left<=0;
+      const b=document.createElement('button');
+      b.className='slot-btn'+(chosenDate===d.date&&chosenSlot===s.name?' sel':'');
+      b.disabled=full;
+      b.innerHTML=`<span>${s.name}</span>
+        <span class="slot-cap ${full?'full':''}">${full?'마감되었어요':`<b>${left}잔</b> 남음 · 정원 ${s.cap}잔`}</span>`;
+      b.onclick=()=>{
+        chosenDate=d.date; chosenSlot=s.name;
+        box.querySelectorAll('.slot-btn').forEach(x=>x.classList.remove('sel'));
+        b.classList.add('sel');
+        document.getElementById('slotNextBtn').disabled=false;
+      };
+      box.appendChild(b);
+    });
+  });
+  document.getElementById('slotNextBtn').disabled=!(chosenDate&&chosenSlot);
 }
 
 /* ═════════ 4. 배달 위치 ═════════ */
@@ -1195,13 +1228,14 @@ function updateOrderBtn(){
 async function submitOrder(){
   if(closedState().closed){ alert('지금은 주문을 받지 않습니다.'); return; }
   if(submitting) return;
-  if(PLAN&&PLAN.slots&&PLAN.slots.length){
-    const s=(PLAN.slots||[]).find(x=>x.name===chosenSlot);
-    if(!s){ alert('배달 교시를 선택해 주세요.'); go('scr-slot'); return; }
-    const used=slotUsed[chosenSlot]||0;
-    if(used+cupCount()>s.cap){
-      alert(`${chosenSlot} 정원이 방금 찼습니다. 다른 교시를 선택해 주세요.`);
-      chosenSlot=null; go('scr-slot'); return;
+  const _days=planDays();
+  if(_days.length){
+    const day=_days.find(d=>d.date===chosenDate);
+    const s=day&&(day.slots||[]).find(x=>x.name===chosenSlot);
+    if(!s){ alert(`${modeWord()} 받을 날짜와 시간을 선택해 주세요.`); go('scr-slot'); return; }
+    if(slotLeft(chosenDate,chosenSlot,s.cap)<cupCount()){
+      alert(`${chosenSlot} 정원이 방금 찼습니다. 다른 시간을 선택해 주세요.`);
+      chosenSlot=null; chosenDate=null; go('scr-slot'); return;
     }
   }
   submitting=true;
@@ -1229,7 +1263,8 @@ async function submitOrder(){
   const order={
     week, memberId:user.id, name:user.name, ext:user.ext||'',
     loc: isPickup() ? (SETTINGS.pickupPlace||'꿈Brew 카페') : seat,
-    homeLoc:user.loc, slot:chosenSlot||'', mode:SETTINGS.mode||'delivery',
+    homeLoc:user.loc, slot:chosenSlot||'', takeDate:chosenDate||'',
+    mode:SETTINGS.mode||'delivery',
     deliverDate:(PLAN&&PLAN.deliverDate)||'',
     items, cups:cupCount(), raw, discount:disc, pay,
     couponUsed:couponUse,
@@ -1253,7 +1288,7 @@ async function submitOrder(){
       const oref=db.collection('orders').doc();
       tx.set(oref,order);
     });
-    if(chosenSlot) slotUsed[chosenSlot]=(slotUsed[chosenSlot]||0)+order.cups;
+    if(chosenSlot&&chosenDate) slotUsed[chosenDate+'|'+chosenSlot]=(slotUsed[chosenDate+'|'+chosenSlot]||0)+order.cups;
     user.coupons=(user.coupons||0)-couponUse;
     showTicket(order);
   }catch(e){
@@ -1278,6 +1313,7 @@ function showTicket(order){
     `<div class="order-line"><span>${i.name} (${i.t.toUpperCase()}) × ${i.q}</span><b>${(i.price*i.q).toLocaleString()}원</b></div>`).join('');
   document.getElementById('ticketBody').innerHTML=lines+
     `<div class="order-line"><span>쿠폰 사용</span><b>${order.couponUsed}잔</b></div>
+     ${order.takeDate?`<div class="order-line"><span>${modeWord()} 일시</span><b>${Number(order.takeDate.slice(5,7))}/${Number(order.takeDate.slice(8,10))} ${order.slot||''}</b></div>`:''}
      <div class="order-line"><span>${isPickup()?'픽업 장소':'배달 위치'}</span><b>${order.loc}</b></div>
      <div class="order-line"><span>결제 금액</span><b style="color:var(--gold)">${order.pay.toLocaleString()}원</b></div>`;
   go('scr-done');
@@ -1315,7 +1351,7 @@ async function openMyOrders(){
             <span class="my-pay">${o.pay.toLocaleString()}원${o.couponUsed?` · 쿠폰 ${o.couponUsed}잔`:''}</span>
           </div>
           <div class="my-items">${items} · 총 ${o.cups}잔<br>
-            <small style="color:var(--mocha)">📍 ${o.loc}${o.slot?` · 🕐 ${o.slot}`:''}</small></div>
+            <small style="color:var(--mocha)">📍 ${o.loc}${o.takeDate?` · 📅 ${Number(o.takeDate.slice(5,7))}/${Number(o.takeDate.slice(8,10))}`:''}${o.slot?` ${o.slot}`:''}</small></div>
           <div class="my-status">${statusRow}</div>
           ${cancelable?`<button class="cancel-btn" onclick="cancelOrder('${o.id}')">이 주문 취소하기</button>`:''}
           ${!o.canceled?`

@@ -140,6 +140,14 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 
 .hint{font-size:.76rem;color:var(--mocha)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+/* 수령 날짜 블록 */
+.take-chip{display:inline-block;font-size:.72rem;font-weight:700;background:var(--sage-soft);
+  color:var(--sage);border:1px solid #DCE8D6;border-radius:6px;padding:2px 8px;margin-left:6px}
+.day-block{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fff}
+.day-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.day-head input[type=date]{flex:1;min-width:150px}
+.day-dow{font-size:.78rem;font-weight:700;color:var(--gold);white-space:nowrap}
+.day-slots{padding-left:10px;border-left:2px solid var(--sage-soft)}
 /* 교시 슬롯 */
 .slot-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
 .slot-row input[type=text]{flex:1.4;min-width:90px}
@@ -411,6 +419,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
       </div>
       <div class="toolbar">
         <select id="weekSel" style="padding:8px 12px;font-size:.84rem"></select>
+        <select id="daySel" style="padding:8px 12px;font-size:.84rem" onchange="renderOrders();renderMake();renderRoute()"></select>
         <button class="btn gold sm" onclick="printSheet()">🖨 취합표 인쇄 (PDF)</button>
         <button class="btn sm" onclick="printLabels()">🏷 컵 라벨 인쇄</button>
         <button class="btn line sm" onclick="exportExcel()">Excel 내보내기</button>
@@ -570,24 +579,23 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <button class="btn sm" onclick="loadWeekPlan()">불러오기</button>
       </div>
       <div class="set-group">
-        <h4>🧾 이번 주 주문 마감</h4>
+        <h4>🧾 주문 접수 기간</h4>
         <div class="set-row">
-          <label>마감 일시</label>
-          <input type="date" id="wpDeadDate">
-          <input type="time" id="wpDeadTime" value="16:00">
+          <label>시작</label>
+          <input type="date" id="wpOpenDate"><input type="time" id="wpOpenTime" value="09:00">
         </div>
-        <p class="hint">이 주차에만 적용됩니다. (기본 설정과 다르게 할 수 있어요)</p>
+        <div class="set-row">
+          <label>마감</label>
+          <input type="date" id="wpDeadDate"><input type="time" id="wpDeadTime" value="15:00">
+        </div>
+        <p class="hint">이 기간 안에서만 주문을 받습니다. (예: 화요일 09:00 ~ 목요일 15:00)</p>
       </div>
       <div class="set-group">
-        <h4 id="wpSlotTitle">🚶 배달 일정 · 교시별 정원</h4>
-        <div class="set-row">
-          <label id="wpDateLabel">배달 날짜</label>
-          <input type="date" id="wpDeliverDate">
-        </div>
-        <div id="slotList" style="margin-top:10px"></div>
-        <button class="btn line sm" onclick="addSlotRow()">＋ 교시 추가</button>
-        <p class="hint">교시 이름(예: 2교시)과 최대 잔 수를 정하면, 주문자가 배달받을 교시를 선택합니다.
-        정원이 다 차면 그 교시는 선택할 수 없게 됩니다.</p>
+        <h4 id="wpSlotTitle">🚶 수령 일정 (배달/픽업 날짜 · 시간대)</h4>
+        <p class="hint" style="margin-bottom:10px">받는 날을 여러 개 만들 수 있습니다.
+        날짜마다 시간대(교시)와 정원을 따로 정하세요. 주문자는 이 중에서 하나를 고릅니다.</p>
+        <div id="dayList"></div>
+        <button class="btn line sm" style="margin-top:8px" onclick="addDayBlock()">＋ 수령 날짜 추가</button>
       </div>
       <button class="btn" style="width:100%" onclick="saveWeekPlan()">이 주차 일정 저장</button>
     </section>
@@ -964,63 +972,117 @@ function slotUsage(week,slotName){
   return ORDERS.filter(o=>!o.canceled&&o.week===week&&o.slot===slotName)
                .reduce((s,o)=>s+o.cups,0);
 }
-function addSlotRow(name,cap){
-  const box=document.getElementById('slotList');
+const DOW=['일','월','화','수','목','금','토'];
+function dowOf(dstr){
+  if(!dstr) return '';
+  const [y,m,d]=dstr.split('-').map(Number);
+  return DOW[new Date(y,m-1,d).getDay()];
+}
+function addDayBlock(day){
+  const box=document.getElementById('dayList');
+  const blk=document.createElement('div'); blk.className='day-block';
+  blk.innerHTML=`
+    <div class="day-head">
+      <input type="date" class="d-date" value="${day?.date||''}" onchange="updDow(this)">
+      <span class="day-dow">${day?.date?'('+dowOf(day.date)+')':''}</span>
+      <button class="btn line sm" onclick="this.closest('.day-block').remove();updateSlotUsage()">✕ 날짜 삭제</button>
+    </div>
+    <div class="day-slots"></div>
+    <button class="btn line sm" style="margin-top:6px" onclick="addSlotRow(this.previousElementSibling)">＋ 시간대 추가</button>`;
+  box.appendChild(blk);
+  const sbox=blk.querySelector('.day-slots');
+  const slots=(day&&day.slots&&day.slots.length)?day.slots:[{name:'4교시',cap:20}];
+  slots.forEach(s=>addSlotRow(sbox,s.name,s.cap));
+}
+function updDow(inp){
+  inp.parentElement.querySelector('.day-dow').textContent=inp.value?'('+dowOf(inp.value)+')':'';
+  updateSlotUsage();
+}
+function addSlotRow(box,name,cap){
   const row=document.createElement('div'); row.className='slot-row';
   row.innerHTML=`
-    <input type="text" value="${name||''}" placeholder="교시 이름 (예: 2교시)" data-f="name">
-    <input type="number" value="${cap!=null?cap:20}" min="1" step="1" data-f="cap" title="최대 잔 수">
+    <input type="text" class="s-name" value="${name||''}" placeholder="시간대 (예: 4교시)">
+    <input type="number" class="s-cap" value="${cap!=null?cap:20}" min="1" step="1" title="최대 잔 수">
     <span style="font-size:.78rem;color:var(--mocha)">잔까지</span>
-    <span class="slot-usage" data-f="use"></span>
-    <button class="btn line sm" onclick="this.parentElement.remove()">✕</button>`;
+    <span class="slot-usage"></span>
+    <button class="btn line sm" onclick="this.parentElement.remove();updateSlotUsage()">✕</button>`;
   box.appendChild(row);
   updateSlotUsage();
 }
+function slotUsage(week,dayDate,slotName){
+  return ORDERS.filter(o=>!o.canceled&&o.week===week&&o.takeDate===dayDate&&o.slot===slotName)
+               .reduce((s,o)=>s+o.cups,0);
+}
 function updateSlotUsage(){
   const week=document.getElementById('wkSel').value;
-  document.querySelectorAll('#slotList .slot-row').forEach(r=>{
-    const name=r.querySelector('[data-f=name]').value.trim();
-    const cap=Number(r.querySelector('[data-f=cap]').value)||0;
-    const el=r.querySelector('[data-f=use]');
-    if(!name){ el.textContent=''; return; }
-    const used=slotUsage(week,name);
-    el.innerHTML=`현재 <b>${used}</b>/${cap}잔`;
-    el.classList.toggle('full',cap>0&&used>=cap);
+  document.querySelectorAll('#dayList .day-block').forEach(blk=>{
+    const date=blk.querySelector('.d-date').value;
+    blk.querySelectorAll('.slot-row').forEach(r=>{
+      const name=r.querySelector('.s-name').value.trim();
+      const cap=Number(r.querySelector('.s-cap').value)||0;
+      const el=r.querySelector('.slot-usage');
+      if(!name||!date){ el.textContent=''; return; }
+      const used=slotUsage(week,date,name);
+      el.innerHTML=`현재 <b>${used}</b>/${cap}잔`;
+      el.classList.toggle('full',cap>0&&used>=cap);
+    });
   });
 }
 function loadWeekPlan(){
   const week=document.getElementById('wkSel').value;
   if(!week) return;
   const p=PLANS[week]||{};
+  // 접수 기간
   document.getElementById('wpDeadDate').value=p.deadDate||week;
-  document.getElementById('wpDeadTime').value=p.deadTime||SETTINGS.deadlineTime||'16:00';
-  // 기본 배달일 = 마감 다음날
-  let dv=p.deliverDate;
-  if(!dv){ const [y,m,d]=week.split('-').map(Number); const dt=new Date(y,m-1,d+1);
-    dv=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
-  document.getElementById('wpDeliverDate').value=dv;
-  const box=document.getElementById('slotList'); box.innerHTML='';
-  const slots=p.slots&&p.slots.length?p.slots:[{name:'2교시',cap:20},{name:'3교시',cap:20}];
-  slots.forEach(s=>addSlotRow(s.name,s.cap));
+  document.getElementById('wpDeadTime').value=p.deadTime||SETTINGS.deadlineTime||'15:00';
+  let od=p.openDate;
+  if(!od){ const [y,m,d]=(p.deadDate||week).split('-').map(Number);
+    const dt=new Date(y,m-1,d-2); od=`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`; }
+  document.getElementById('wpOpenDate').value=od;
+  document.getElementById('wpOpenTime').value=p.openTime||'09:00';
+  // 수령 날짜들
+  const box=document.getElementById('dayList'); box.innerHTML='';
+  let days=p.days;
+  if(!days||!days.length){
+    // 구버전(단일 배달일) 자동 변환
+    if(p.deliverDate) days=[{date:p.deliverDate,slots:p.slots||[{name:'4교시',cap:20}]}];
+    else{
+      const [y,m,d]=(p.deadDate||week).split('-').map(Number);
+      const dt=new Date(y,m-1,d+1);
+      days=[{date:`${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`,slots:[{name:'4교시',cap:20}]}];
+    }
+  }
+  days.forEach(d=>addDayBlock(d));
   const pk=(SETTINGS.mode==='pickup');
-  document.getElementById('wpSlotTitle').textContent=pk?'🥤 픽업 일정 · 시간대별 정원':'🚶 배달 일정 · 교시별 정원';
-  document.getElementById('wpDateLabel').textContent=pk?'픽업 날짜':'배달 날짜';
+  document.getElementById('wpSlotTitle').textContent=pk?'🥤 픽업 일정 (날짜 · 시간대)':'🚶 수령 일정 (배달 날짜 · 시간대)';
 }
 async function saveWeekPlan(){
   const week=document.getElementById('wkSel').value;
-  const slots=[...document.querySelectorAll('#slotList .slot-row')].map(r=>({
-    name:r.querySelector('[data-f=name]').value.trim(),
-    cap:Number(r.querySelector('[data-f=cap]').value)||0
-  })).filter(s=>s.name&&s.cap>0);
-  const names=slots.map(s=>s.name);
-  if(new Set(names).size!==names.length){ alert('교시 이름이 중복되었습니다.'); return; }
+  const days=[...document.querySelectorAll('#dayList .day-block')].map(blk=>{
+    const date=blk.querySelector('.d-date').value;
+    const slots=[...blk.querySelectorAll('.slot-row')].map(r=>({
+      name:r.querySelector('.s-name').value.trim(),
+      cap:Number(r.querySelector('.s-cap').value)||0
+    })).filter(s=>s.name&&s.cap>0);
+    return {date,slots};
+  }).filter(d=>d.date&&d.slots.length);
+  if(!days.length){ alert('수령 날짜와 시간대를 최소 하나 이상 설정해 주세요.'); return; }
+  const dates=days.map(d=>d.date);
+  if(new Set(dates).size!==dates.length){ alert('같은 날짜가 두 번 있습니다.'); return; }
+  for(const d of days){
+    const names=d.slots.map(s=>s.name);
+    if(new Set(names).size!==names.length){ alert(`${d.date} 의 시간대 이름이 중복되었습니다.`); return; }
+  }
   const data={
+    openDate:document.getElementById('wpOpenDate').value,
+    openTime:document.getElementById('wpOpenTime').value||'09:00',
     deadDate:document.getElementById('wpDeadDate').value,
-    deadTime:document.getElementById('wpDeadTime').value||'16:00',
-    deliverDate:document.getElementById('wpDeliverDate').value,
-    slots
+    deadTime:document.getElementById('wpDeadTime').value||'15:00',
+    days,
+    // 호환용(구버전 필드)
+    deliverDate:days[0].date, slots:days[0].slots
   };
-  if(!data.deadDate||!data.deliverDate){ alert('마감 일시와 배달 날짜를 입력해 주세요.'); return; }
+  if(!data.deadDate){ alert('주문 마감 일시를 입력해 주세요.'); return; }
   try{
     await db.collection('plans').doc(week).set(data,{merge:true});
     PLANS[week]=data;
@@ -1229,6 +1291,36 @@ function locHTML(loc){
   const m=String(loc||'').match(/^(.*?)\s*(\(.+\))\s*$/);
   return m ? `${m[1]}<span class="paren">${m[2]}</span>` : loc;
 }
+function planDays(){
+  const p=PLANS[curWeek]||{};
+  if(p.days&&p.days.length) return p.days;
+  if(p.deliverDate) return [{date:p.deliverDate,slots:p.slots||[]}];
+  return [];
+}
+function fillDaySel(){
+  const sel=document.getElementById('daySel');
+  if(!sel) return;
+  const cur=sel.value;
+  const days=planDays();
+  const inOrders=[...new Set(ORDERS.filter(o=>o.takeDate).map(o=>o.takeDate))];
+  const all=[...new Set([...days.map(d=>d.date),...inOrders])].sort();
+  sel.innerHTML=`<option value="all">📅 전체 수령일</option>`+
+    all.map(d=>{
+      const [y,m,dd]=d.split('-').map(Number);
+      const n=ORDERS.filter(o=>!o.canceled&&o.takeDate===d).reduce((s,o)=>s+o.cups,0);
+      return `<option value="${d}">${m}/${dd}(${DOW[new Date(y,m-1,dd).getDay()]}) · ${n}잔</option>`;
+    }).join('');
+  sel.value=(cur&&[...sel.options].some(o=>o.value===cur))?cur:'all';
+  sel.style.display=all.length>1?'inline-block':'none';
+}
+function dayFilter(){
+  const sel=document.getElementById('daySel');
+  return (sel&&sel.value&&sel.value!=='all')?sel.value:null;
+}
+function visibleOrders(){
+  const d=dayFilter();
+  return d?ORDERS.filter(o=>o.takeDate===d):ORDERS;
+}
 function slotOrder(name){
   const {next}=deadlinePair();
   const p=PLANS[curWeek]||PLANS[wk(next)]||{};
@@ -1236,7 +1328,8 @@ function slotOrder(name){
   return idx<0?999:idx;
 }
 function sortedOrders(){
-  return ORDERS.filter(o=>!o.canceled).slice().sort((a,b)=>
+  return visibleOrders().filter(o=>!o.canceled).slice().sort((a,b)=>
+    ((a.takeDate||'')>(b.takeDate||'')?1:(a.takeDate||'')<(b.takeDate||'')?-1:0) ||
     slotOrder(a.slot)-slotOrder(b.slot) ||
     (a.loc>b.loc?1:a.loc<b.loc?-1:0) ||
     (a.name>b.name?1:-1));
@@ -1270,7 +1363,7 @@ function orderCardHTML(o,doneStyle){
         <span class="oc-amt">${o.pay.toLocaleString()}원${o.couponUsed?` <span class="badge coupon">쿠폰 ${o.couponUsed}잔</span>`:''}</span>
       </div>
       <div class="oc-items">${itemsText(o)} · 총 ${o.cups}잔</div>
-      <div class="oc-loc">📍 ${o.loc}</div>
+      <div class="oc-loc">📍 ${o.loc}${o.takeDate?`<span class="take-chip">${Number(o.takeDate.slice(5,7))}/${Number(o.takeDate.slice(8,10))} ${o.slot||''}</span>`:(o.slot?`<span class="take-chip">${o.slot}</span>`:'')}</div>
       <div class="oc-foot">${foot}</div>
     </div>`;
 }
@@ -1297,14 +1390,16 @@ async function deleteOrder(id){
   }catch(e){ alert('삭제 실패 — 다시 시도해 주세요.'); console.error(e); }
 }
 function renderOrders(){
+  fillDaySel();
   const list=document.getElementById('orderList'); list.innerHTML='';
-  const valid=ORDERS.filter(o=>!o.canceled);
+  const POOL=visibleOrders();
+  const valid=POOL.filter(o=>!o.canceled);
   let cups=0,sum=0,unpaid=0;
   valid.forEach(o=>{ cups+=o.cups; sum+=o.pay; if(!o.confirmed)unpaid++; });
   const active=valid.filter(o=>!o.delivered);
   const done=valid.filter(o=>o.delivered);
-  const canceled=ORDERS.filter(o=>o.canceled);
-  if(!ORDERS.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">이 주차에는 아직 주문이 없습니다.</p>';
+  const canceled=POOL.filter(o=>o.canceled);
+  if(!POOL.length) list.innerHTML='<p class="hint" style="padding:20px 0;text-align:center">해당 조건의 주문이 없습니다.</p>';
   active.forEach(o=>list.insertAdjacentHTML('beforeend',orderCardHTML(o,false)));
   canceled.forEach(o=>list.insertAdjacentHTML('beforeend',orderCardHTML(o,false)));
   if(done.length){
@@ -1328,7 +1423,7 @@ function toggleField(id,field,el){
 /* ═════════ 제조 집계 ═════════ */
 function makeAgg(){
   const agg={};
-  ORDERS.filter(o=>!o.canceled).forEach(o=>(o.items||[]).forEach(i=>{
+  visibleOrders().filter(o=>!o.canceled).forEach(o=>(o.items||[]).forEach(i=>{
     const k=i.name+'|'+i.t+'|'+(i.opt||''); agg[k]=(agg[k]||0)+i.q;
   }));
   return agg;
