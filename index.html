@@ -64,91 +64,32 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .step .num{font-size:.6rem;color:var(--gold);font-weight:700;letter-spacing:.12em;display:block;margin-top:5px}
 .step .tt{font-size:.72rem;color:var(--mocha);margin-top:2px;line-height:1.45;word-break:keep-all}
 .strip-label{font-size:.68rem;font-weight:700;color:var(--gold);letter-spacing:.22em;margin:0 2px 7px}
-.deliver-banner{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:14px;
-  padding:13px 16px;margin-bottom:16px}
-.deliver-banner .db-t{font-size:.8rem;font-weight:700;color:var(--sage);letter-spacing:.02em}
-.deliver-banner .db-day{display:flex;align-items:flex-start;gap:10px;margin-top:9px;flex-wrap:wrap}
-.deliver-banner .db-date{font-size:.82rem;font-weight:700;color:var(--brew-deep);white-space:nowrap;
-  background:#fff;border:1px solid #DCE8D6;border-radius:8px;padding:4px 10px}
-.deliver-banner .db-slots{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0}
-.db-slot{background:#fff;border:1px solid #CFE0C7;border-radius:999px;padding:4px 12px;
-  font-size:.8rem;color:var(--brew-deep);font-weight:500}
-.db-slot b{color:var(--sage)}
-.db-slot.full{opacity:.5;text-decoration:line-through}
-.menu-strip{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;margin-bottom:18px;scrollbar-width:none}
-.menu-strip::-webkit-scrollbar{display:none}
-.ms-chip{flex:none;background:var(--paper);border:1px solid var(--line);border-radius:999px;
-  padding:8px 15px;font-size:.78rem;color:var(--brew-deep);white-space:nowrap}
-.ms-chip b{color:var(--gold);margin-left:4px}
-.deadline-chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;
-  background:var(--dream-soft);color:#B4636D;border:1px solid #F0D8DB;border-radius:999px;
-  font-size:.78rem;font-weight:500;padding:5px 14px}
-.dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){.dot{animation:none}}
-.deadline-chip.closed{background:#F6ECE9;color:#B4533C;border-color:#E7D2CB}
-.deliver-chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;
-  background:var(--sage-soft);color:var(--sage);border:1px solid #DCE8D6;border-radius:999px;
-  font-size:.76rem;font-weight:700;padding:5px 14px}
-.live-dot{display:inline-flex;align-items:center;gap:5px;font-size:.68rem;color:var(--sage);
-  font-weight:700;margin-top:8px}
+.menu-strip{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;
+  padding:2px;margin-bottom:18px}
+.ms-card{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+  padding:10px 6px;text-align:center}
+.ms-card .ic{font-size:1.5rem;display:block;line-height:1.2}
+.ms-card .nm{font-size:.74rem;font-weight:500;color:var(--brew-deep);margin-top:4px;
+  word-break:keep-all;line-height:1.3}
+.ms-card .pr{font-size:.74rem;font-weight:700;color:var(--gold);margin-top:2px}
+.deliver-banner{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:16px;
+  padding:14px 14px 12px;margin-bottom:18px}
+.deliver-banner .db-t{font-size:.86rem;font-weight:700;color:var(--sage);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.db-day{background:#fff;border:1px solid #DCE8D6;border-radius:12px;padding:11px 13px;margin-bottom:8px}
+.db-day.closed{opacity:.55}
+.db-day-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.db-date{font-size:.95rem;font-weight:700;color:var(--brew-deep);white-space:nowrap}
+.db-dl{font-size:.72rem;color:var(--mocha);white-space:nowrap}
+.db-dl.over{color:var(--hot);font-weight:700}
+.db-slots{display:flex;flex-wrap:wrap;gap:6px}
+.db-slot{background:var(--cream);border:1px solid var(--line);border-radius:999px;
+  padding:5px 12px;font-size:.8rem;color:var(--brew-deep);font-weight:500;white-space:nowrap}
+.db-slot b{color:var(--sage);font-weight:700}
+.db-slot.full{opacity:.45;text-decoration:line-through}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--sage);font-weight:700;margin-top:4px}
 .live-dot .pip{width:7px;height:7px;border-radius:50%;background:var(--sage);
   box-shadow:0 0 0 0 rgba(143,175,126,.6);animation:livepulse 1.8s infinite}
-@keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(143,175,126,.55)}70%{box-shadow:0 0 0 7px rgba(143,175,126,0)}100%{box-shadow:0 0 0 0 rgba(143,175,126,0)}}
-@media (prefers-reduced-motion:reduce){.live-dot .pip{animation:none}}
-.closed-card{background:#F6ECE9;border:1px solid #E7D2CB;border-radius:12px;padding:18px 16px;
-  text-align:center;color:#B4533C;font-size:.9rem;margin-bottom:18px;line-height:1.7}
-.myorders-btn{background:var(--paper);border:1px solid var(--line);border-radius:999px;
-  padding:5px 12px;font-size:.76rem;color:var(--brew);font-weight:700;white-space:nowrap}
-.my-card{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--paper)}
-.my-week{font-size:.74rem;color:var(--gold);font-weight:700}
-.my-items{font-size:.86rem;margin:6px 0;line-height:1.5}
-.my-pay{font-weight:700;color:var(--gold);font-size:.9rem}
-.my-status{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-.st{font-size:.72rem;border-radius:6px;padding:3px 9px;background:#F0EBE0;color:#B0A38E}
-.st.on{background:var(--sage-soft);color:var(--sage);font-weight:700}
-.st.off{background:#F6ECE9;color:#B4533C;font-weight:700}
-.my-card.canceled{opacity:.6;background:#FAF4F1}
-.cancel-btn{margin-top:10px;width:100%;padding:9px;border-radius:10px;font-size:.82rem;
-  background:transparent;border:1px solid #E7D2CB;color:#B4533C;font-weight:700}
-/* 얼음 옵션 (한 잔마다) */
-.ice-picks{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none}
-.ice-picks.show{display:block}
-.cup-opt{background:#FBF7EE;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:6px}
-.cup-ttl{font-size:.72rem;font-weight:700;color:var(--gold);letter-spacing:.06em;margin-bottom:5px}
-.ice-pick{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem}
-.ice-pick:last-child{margin-bottom:0}
-.ice-pick .lbl{color:var(--mocha);white-space:nowrap}
-.ice-pick select{flex:1;font-family:inherit;font-size:.82rem;padding:6px 8px;border:1px solid var(--line);
-  border-radius:8px;background:#fff;color:var(--brew-deep);max-width:150px}
-/* 배달 교시 선택 */
-.slot-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
-  gap:10px;padding:9px 16px;background:rgba(255,253,248,.94);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--line)}
-.nav-btn{background:none;border:none;font-size:.82rem;color:var(--mocha);font-weight:700;
-  padding:6px 8px;border-radius:8px;white-space:nowrap}
-.nav-btn:active{background:var(--cream)}
-.steps-dot{display:flex;gap:6px;align-items:center}
-.steps-dot span{width:7px;height:7px;border-radius:50%;background:var(--line)}
-.steps-dot span.on{background:var(--gold);width:18px;border-radius:99px}
-.steps-dot span.done{background:var(--sage)}
-.take-note{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:12px;
-  padding:11px 14px;margin-bottom:14px;font-size:.84rem;color:var(--sage);font-weight:700;
-  display:flex;justify-content:space-between;align-items:center;gap:8px}
-.take-note button{background:#fff;border:1px solid #DCE8D6;border-radius:8px;
-  padding:4px 10px;font-size:.74rem;color:var(--sage);font-weight:700}
-.day-cap{font-size:.82rem;font-weight:700;color:var(--gold);margin:14px 2px 2px;
-  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.day-cap::after{content:'';flex:1;height:1px;background:var(--line);order:9}
-.day-dl{font-size:.7rem;font-weight:500;color:var(--mocha);background:var(--cream);
-  border:1px solid var(--line);border-radius:6px;padding:2px 7px}
-.day-dl.over{color:var(--hot);background:var(--hot-soft);border-color:#EEDAD3;font-weight:700}
-.deliver-banner .db-dl{font-size:.72rem;color:var(--mocha);background:#fff;border:1px solid var(--line);
-  border-radius:8px;padding:3px 9px;white-space:nowrap}
-.deliver-banner .db-dl.over{color:var(--hot);background:var(--hot-soft);border-color:#EEDAD3;font-weight:700}
-.deliver-banner .db-day.closed{opacity:.55}
-.deliver-banner .db-day{align-items:center}
 .slot-btn{display:flex;justify-content:space-between;align-items:center;width:100%;
   background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;
   font-size:.95rem;color:var(--brew-deep);font-family:inherit;text-align:left}
@@ -247,7 +188,8 @@ button{font-family:inherit;cursor:pointer;border:none}
 .coupon-badge{background:#FBF3E0;color:var(--gold);border:1px solid #EEDFBC;border-radius:999px;padding:4px 12px;font-size:.78rem;font-weight:700}
 .menu-card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:15px 16px;margin-bottom:12px}
 .menu-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.menu-name{font-family:'Gowun Batang',serif;font-weight:700;font-size:1.05rem}
+.menu-name{font-family:'Gowun Batang',serif;font-weight:700;font-size:1.05rem;display:flex;align-items:center;gap:7px}
+.m-ic{font-size:1.3rem}
 .menu-name small{font-family:'Noto Sans KR';font-size:.72rem;color:var(--mocha);font-weight:400;margin-left:4px}
 .menu-price{font-weight:700;color:var(--gold);font-size:.95rem;white-space:nowrap}
 .menu-ctrl{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px}
@@ -356,12 +298,12 @@ header .deco{z-index:0}
 @media (prefers-reduced-motion:reduce){.pfall{display:none}}
 
 /* ═══ 가로 스크롤 힌트: 더 있으면 오른쪽이 흐려짐 ═══ */
-.tabs,.menu-strip{
+.tabs{
   -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
   mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);
   padding-right:20px;
 }
-.tabs.at-end,.menu-strip.at-end{-webkit-mask-image:none;mask-image:none;padding-right:2px}
+.tabs.at-end{-webkit-mask-image:none;mask-image:none;padding-right:2px}
 
 /* ═══ 데스크톱 화면 (900px 이상) ═══ */
 @media(min-width:900px){
@@ -377,7 +319,7 @@ header .deco{z-index:0}
   main{padding:30px 52px 150px}
   /* 옆으로 밀기 → 전부 펼쳐 보이기 */
   .tabs{flex-wrap:wrap;overflow:visible;padding-bottom:4px}
-  .menu-strip{flex-wrap:wrap;overflow:visible}
+  .menu-strip{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))}
   /* 명단 3열 */
   .mem-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-height:56vh;align-content:start}
   .room-label{grid-column:1/-1}
@@ -396,9 +338,9 @@ header .deco{z-index:0}
 }
 /* 마우스 환경: 가로 스크롤 영역에 가는 스크롤바 표시 */
 @media(hover:hover) and (max-width:899px){
-  .tabs,.menu-strip{scrollbar-width:thin}
-  .tabs::-webkit-scrollbar,.menu-strip::-webkit-scrollbar{display:block;height:4px}
-  .tabs::-webkit-scrollbar-thumb,.menu-strip::-webkit-scrollbar-thumb{background:#D9CBB2;border-radius:99px}
+  .tabs{scrollbar-width:thin}
+  .tabs::-webkit-scrollbar{display:block;height:4px}
+  .tabs::-webkit-scrollbar-thumb{background:#D9CBB2;border-radius:99px}
 }
 </style>
 </head>
@@ -435,6 +377,7 @@ header .deco{z-index:0}
     <!-- ═══ 1. 로그인 ═══ -->
     <section class="screen active" id="scr-login">
       <div class="login-step on" id="ls-name">
+        <div class="deliver-banner fu" id="deliverBanner" style="animation-delay:.05s;display:none"></div>
         <div class="intro-card">
           <b>특수학급 실습카페 ‘꿈Brew’</b>는 학생들이 바리스타 실습을 통해 직업 능력을 키워가는 배움의 공간입니다.
           학생들은 음료 제조, 주문 응대, 정리 등 실제 카페 운영 과정을 경험하며 자신감과 책임감을 배웁니다.
@@ -445,7 +388,6 @@ header .deco{z-index:0}
           <div class="step"><span class="ic">☕</span><span class="num">STEP 2</span><div class="tt">학생들이<br>정성껏 제조</div></div>
           <div class="step" id="step3"><span class="ic">🚶</span><span class="num">STEP 3</span><div class="tt">선생님 자리로<br>배달</div></div>
         </div>
-        <div class="deliver-banner fu" id="deliverBanner" style="animation-delay:.15s;display:none"></div>
         <div class="fu" style="animation-delay:.2s">
           <div class="strip-label">MENU · 이번 주 메뉴</div>
           <div class="menu-strip" id="menuStrip"></div>
@@ -820,7 +762,8 @@ async function init(){
   document.getElementById('accountHolder').textContent=`예금주 · ${SETTINGS.holder} (꿈Brew)`;
   renderMenu();
   document.getElementById('menuStrip').innerHTML=
-    MENUS.map(m=>`<span class="ms-chip">${m.name}<b>${m.price.toLocaleString()}원</b></span>`).join('');
+    MENUS.map(m=>`<div class="ms-card"><span class="ic">${m.icon||'🥤'}</span>
+      <div class="nm">${m.name}</div><div class="pr">${m.price.toLocaleString()}원</div></div>`).join('');
   const s3=document.getElementById('step3');
   if(s3&&isPickup()) s3.innerHTML='<span class="ic">🥤</span><span class="num">STEP 3</span><div class="tt">카페에서<br>픽업</div>';
   renderDeliverBanner();
@@ -917,10 +860,12 @@ function renderDeliverBanner(){
       return `<span class="db-slot ${full?'full':''}">${s.name}${(!full)?` · <b>${lf}잔</b> 남음`:(cl?'':' · 정원 마감')}</span>`;
     }).join('');
     html+=`<div class="db-day${cl?' closed':''}">
-       <span class="db-date">${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</span>
-       <span class="db-slots">${chips}</span>
-       <span class="db-dl${cl?' over':''}">${cl?'⛔ 주문 마감됨'
-         :`🧾 ${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감${left?' · '+left:''}`}</span>
+       <div class="db-day-top">
+         <span class="db-date">${isPickup()?'🥤':'🚶'} ${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</span>
+         <span class="db-dl${cl?' over':''}">${cl?'⛔ 주문 마감'
+           :`🧾 ${dl.getMonth()+1}/${dl.getDate()} ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감${left?' · '+left:''}`}</span>
+       </div>
+       <div class="db-slots">${chips}</div>
      </div>`;
   });
   html+=`<div class="live-dot"><span class="pip"></span>실시간 현황 · 방금 업데이트됨</div>`;
@@ -1092,7 +1037,7 @@ function renderMenu(){
       </div>`).join('');
     card.innerHTML=`
       <div class="menu-top">
-        <span class="menu-name">${m.name}${m.sub?`<small>${m.sub}</small>`:''}</span>
+        <span class="menu-name"><span class="m-ic">${m.icon||'🥤'}</span>${m.name}${m.sub?`<small>${m.sub}</small>`:''}</span>
         <span class="menu-price">${m.price.toLocaleString()}원</span>
       </div>
       ${rows}

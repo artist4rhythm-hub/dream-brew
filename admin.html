@@ -135,7 +135,8 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .set-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;font-size:.86rem}
 .set-row label{min-width:64px;color:var(--mocha)}
 .set-row input{flex:1;min-width:120px}
-.menu-set-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.menu-set-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.emoji-pick{font-size:1.05rem;letter-spacing:3px;cursor:pointer;user-select:all}
 .menu-set-row input[type=text]{flex:2} .menu-set-row input[type=number]{flex:1;min-width:90px}
 
 .hint{font-size:.76rem;color:var(--mocha)}
@@ -569,6 +570,10 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <h4>📖 메뉴 · 가격</h4>
         <div id="menuSet"></div>
         <button class="btn line sm" style="margin-top:6px" onclick="addMenuRow()">＋ 메뉴 추가</button>
+        <p class="hint" style="margin-top:8px">맨 앞 칸에 <b>이모지</b>를 넣으면 주문 화면 메뉴 카드에 그림으로 표시됩니다.
+        비워 두면 기본 컵 모양이 나옵니다.<br>
+        자주 쓰는 아이콘: <span class="emoji-pick" onclick="pickEmoji(event)">☕ 🥤 🧋 🍵 🧃 🍓 🍊 🍋 🫖 🥛 🍫 🌿 🍹 🧉</span>
+        <span style="color:var(--mocha)">(클릭하면 복사됩니다)</span></p>
       </div>
       <button class="btn" style="width:100%" onclick="saveSettings()">설정 저장</button>
     </section>
@@ -1599,6 +1604,12 @@ function applyModeLabels(){
   const rt=document.getElementById('routeSecTitle'); if(rt) rt.textContent=pk?'픽업 시간대별 목록':'배달 동선표';
   const rd=document.getElementById('routeSecDesc'); if(rd) rd.textContent=pk?'픽업 시간대별로 묶었습니다. 준비·전달 안내에 활용하세요.':'배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.';
 }
+function pickEmoji(e){
+  const sel=window.getSelection();
+  const r=document.createRange(); r.selectNodeContents(e.target);
+  sel.removeAllRanges(); sel.addRange(r);
+  try{ document.execCommand('copy'); }catch(_){}
+}
 function modeToggle(){
   const pk=document.getElementById('modePickup').checked;
   document.getElementById('pickupPlaceRow').style.display=pk?'flex':'none';
@@ -1641,6 +1652,8 @@ function addMenuRow(m){
   const box=document.getElementById('menuSet');
   const row=document.createElement('div'); row.className='menu-set-row';
   row.innerHTML=`
+    <input type="text" value="${m&&m.icon?m.icon:''}" placeholder="🍹" data-f="icon"
+      style="flex:0 0 52px;text-align:center;font-size:1.05rem" maxlength="4" title="아이콘(이모지)">
     <input type="text" value="${m?m.name:''}" placeholder="메뉴 이름" data-f="name">
     <input type="number" value="${m?m.price:3000}" step="100" data-f="price">
     <label style="font-size:.74rem;color:var(--mocha);white-space:nowrap">
@@ -1655,7 +1668,8 @@ async function saveSettings(){
     const name=r.querySelector('[data-f=name]').value.trim();
     const price=Number(r.querySelector('[data-f=price]').value)||0;
     const iceonly=r.querySelector('[data-f=iceonly]').checked;
-    return name?{id:r.dataset.id,name,price,temps:iceonly?['ice']:['ice','hot']}:null;
+    const icon=r.querySelector('[data-f=icon]').value.trim();
+    return name?{id:r.dataset.id,name,price,icon,temps:iceonly?['ice']:['ice','hot']}:null;
   }).filter(Boolean);
   const data={
     deadlineDay:Number(document.getElementById('setDay').value),
