@@ -136,7 +136,15 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .set-row label{min-width:64px;color:var(--mocha)}
 .set-row input{flex:1;min-width:120px}
 .menu-set-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
-.emoji-pick{font-size:1.05rem;letter-spacing:3px;cursor:pointer;user-select:all}
+.icon-btn{flex:0 0 46px;height:38px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+  font-size:1.25rem;line-height:1;cursor:pointer;color:var(--mocha)}
+.icon-btn:hover{border-color:var(--dream)}
+.emoji-panel{margin-top:10px;background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px}
+.ep-t{font-size:.8rem;color:var(--mocha);margin-bottom:8px}
+.ep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}
+.ep-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:#fff;
+  font-size:1.3rem;line-height:1;cursor:pointer}
+.ep-grid button:hover{border-color:var(--sage);background:var(--sage-soft)}
 .menu-set-row input[type=text]{flex:2} .menu-set-row input[type=number]{flex:1;min-width:90px}
 
 .hint{font-size:.76rem;color:var(--mocha)}
@@ -570,10 +578,8 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <h4>📖 메뉴 · 가격</h4>
         <div id="menuSet"></div>
         <button class="btn line sm" style="margin-top:6px" onclick="addMenuRow()">＋ 메뉴 추가</button>
-        <p class="hint" style="margin-top:8px">맨 앞 칸에 <b>이모지</b>를 넣으면 주문 화면 메뉴 카드에 그림으로 표시됩니다.
-        비워 두면 기본 컵 모양이 나옵니다.<br>
-        자주 쓰는 아이콘: <span class="emoji-pick" onclick="pickEmoji(event)">☕ 🥤 🧋 🍵 🧃 🍓 🍊 🍋 🫖 🥛 🍫 🌿 🍹 🧉</span>
-        <span style="color:var(--mocha)">(클릭하면 복사됩니다)</span></p>
+        <p class="hint" style="margin-top:8px">메뉴 앞 칸을 누르면 <b>아이콘 고르기</b>가 열립니다. 비워 두면 기본 컵 모양이 나옵니다.</p>
+        <div id="emojiPanel" class="emoji-panel" style="display:none"></div>
       </div>
       <button class="btn" style="width:100%" onclick="saveSettings()">설정 저장</button>
     </section>
@@ -1282,7 +1288,7 @@ function subscribeOrders(week){
     ORDERS=snap.docs.map(d=>({id:d.id,...d.data()}));
     ORDERS.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
     renderOrders(); renderMake(); renderRoute();
-    if(document.getElementById('slotList').children.length) updateSlotUsage();
+    if(document.getElementById('dayList')?.children.length) updateSlotUsage();
     flashLive();
   },e=>console.error(e));
 }
@@ -1604,11 +1610,23 @@ function applyModeLabels(){
   const rt=document.getElementById('routeSecTitle'); if(rt) rt.textContent=pk?'픽업 시간대별 목록':'배달 동선표';
   const rd=document.getElementById('routeSecDesc'); if(rd) rd.textContent=pk?'픽업 시간대별로 묶었습니다. 준비·전달 안내에 활용하세요.':'배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.';
 }
-function pickEmoji(e){
-  const sel=window.getSelection();
-  const r=document.createRange(); r.selectNodeContents(e.target);
-  sel.removeAllRanges(); sel.addRange(r);
-  try{ document.execCommand('copy'); }catch(_){}
+const EMOJIS=['☕','🍵','🧋','🥤','🧃','🥛','🧉','🍹','🍓','🍊','🍋','🍇','🍑','🥭','🍫','🌿','🍯','🫐','🍠','🌾','🧊','🔥','🍰','🫖','🌸','🥥'];
+let emojiTarget=null;
+function openEmojiPanel(btn){
+  emojiTarget=btn;
+  const p=document.getElementById('emojiPanel');
+  p.innerHTML=`<div class="ep-t">아이콘 선택 — <b>${btn.closest('.menu-set-row').querySelector('[data-f=name]').value||'새 메뉴'}</b></div>`+
+    `<div class="ep-grid">`+
+    `<button type="button" onclick="setEmoji('')" title="없음">✕</button>`+
+    EMOJIS.map(e=>`<button type="button" onclick="setEmoji('${e}')">${e}</button>`).join('')+
+    `</div>`;
+  p.style.display='block';
+  p.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function setEmoji(e){
+  if(emojiTarget){ emojiTarget.dataset.icon=e; emojiTarget.textContent=e||'＋'; }
+  document.getElementById('emojiPanel').style.display='none';
+  emojiTarget=null;
 }
 function modeToggle(){
   const pk=document.getElementById('modePickup').checked;
@@ -1646,14 +1664,15 @@ function fillSettingsUI(){
   }
   groups.forEach(g=>addOptGroup(g));
   const box=document.getElementById('menuSet'); box.innerHTML='';
-  (SETTINGS.menus||DEFAULT_MENUS).forEach(m=>addMenuRow(m));
+  const mlist=(SETTINGS.menus&&SETTINGS.menus.length)?SETTINGS.menus:DEFAULT_MENUS;
+  mlist.forEach(m=>addMenuRow(m));
 }
 function addMenuRow(m){
   const box=document.getElementById('menuSet');
   const row=document.createElement('div'); row.className='menu-set-row';
   row.innerHTML=`
-    <input type="text" value="${m&&m.icon?m.icon:''}" placeholder="🍹" data-f="icon"
-      style="flex:0 0 52px;text-align:center;font-size:1.05rem" maxlength="4" title="아이콘(이모지)">
+    <button type="button" class="icon-btn" data-f="icon" data-icon="${m&&m.icon?m.icon:''}"
+      onclick="openEmojiPanel(this)" title="아이콘 고르기">${(m&&m.icon)||'＋'}</button>
     <input type="text" value="${m?m.name:''}" placeholder="메뉴 이름" data-f="name">
     <input type="number" value="${m?m.price:3000}" step="100" data-f="price">
     <label style="font-size:.74rem;color:var(--mocha);white-space:nowrap">
@@ -1668,7 +1687,7 @@ async function saveSettings(){
     const name=r.querySelector('[data-f=name]').value.trim();
     const price=Number(r.querySelector('[data-f=price]').value)||0;
     const iceonly=r.querySelector('[data-f=iceonly]').checked;
-    const icon=r.querySelector('[data-f=icon]').value.trim();
+    const icon=(r.querySelector('[data-f=icon]').dataset.icon||'').trim();
     return name?{id:r.dataset.id,name,price,icon,temps:iceonly?['ice']:['ice','hot']}:null;
   }).filter(Boolean);
   const data={
@@ -1697,6 +1716,7 @@ async function saveSettings(){
     })).filter(g=>g.name&&g.opts.length),
     menus
   };
+  if(!data.menus.length && !confirm('메뉴가 하나도 없습니다.\n이대로 저장하면 주문 페이지에 메뉴가 표시되지 않습니다. 계속할까요?')) return;
   try{
     await db.collection('settings').doc('main').set(data,{merge:true});
     SETTINGS={...SETTINGS,...data};
