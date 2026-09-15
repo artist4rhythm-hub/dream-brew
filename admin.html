@@ -147,6 +147,10 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .day-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .day-head input[type=date]{flex:1;min-width:150px}
 .day-dow{font-size:.78rem;font-weight:700;color:var(--gold);white-space:nowrap}
+.day-dead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;
+  background:var(--gold-soft);border:1px solid #EEDFBC;border-radius:10px;padding:8px 10px}
+.day-dead .dd-label{font-size:.78rem;font-weight:700;color:var(--gold);white-space:nowrap}
+.day-dead input{font-size:.84rem;padding:7px 9px}
 .day-slots{padding-left:10px;border-left:2px solid var(--sage-soft)}
 /* 교시 슬롯 */
 .slot-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
@@ -588,7 +592,8 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
           <label>마감</label>
           <input type="date" id="wpDeadDate"><input type="time" id="wpDeadTime" value="15:00">
         </div>
-        <p class="hint">이 기간 안에서만 주문을 받습니다. (예: 화요일 09:00 ~ 목요일 15:00)</p>
+        <p class="hint">기본(공통) 접수 기간입니다. 수령 날짜마다 마감을 다르게 하려면
+        아래 <b>수령 일정</b>에서 그 날짜의 마감을 따로 지정하세요.</p>
       </div>
       <div class="set-group">
         <h4 id="wpSlotTitle">🚶 수령 일정 (배달/픽업 날짜 · 시간대)</h4>
@@ -987,6 +992,12 @@ function addDayBlock(day){
       <span class="day-dow">${day?.date?'('+dowOf(day.date)+')':''}</span>
       <button class="btn line sm" onclick="this.closest('.day-block').remove();updateSlotUsage()">✕ 날짜 삭제</button>
     </div>
+    <div class="day-dead">
+      <span class="dd-label">🧾 이 날 주문 마감</span>
+      <input type="date" class="d-ddate" value="${day?.deadDate||''}">
+      <input type="time" class="d-dtime" value="${day?.deadTime||''}">
+      <span class="hint" style="font-size:.72rem">비우면 위의 공통 마감 적용</span>
+    </div>
     <div class="day-slots"></div>
     <button class="btn line sm" style="margin-top:6px" onclick="addSlotRow(this.previousElementSibling)">＋ 시간대 추가</button>`;
   box.appendChild(blk);
@@ -1064,7 +1075,9 @@ async function saveWeekPlan(){
       name:r.querySelector('.s-name').value.trim(),
       cap:Number(r.querySelector('.s-cap').value)||0
     })).filter(s=>s.name&&s.cap>0);
-    return {date,slots};
+    const deadDate=blk.querySelector('.d-ddate').value||'';
+    const deadTime=blk.querySelector('.d-dtime').value||'';
+    return {date,slots,deadDate,deadTime};
   }).filter(d=>d.date&&d.slots.length);
   if(!days.length){ alert('수령 날짜와 시간대를 최소 하나 이상 설정해 주세요.'); return; }
   const dates=days.map(d=>d.date);
@@ -1302,24 +1315,41 @@ function fillDaySel(){
   if(!sel) return;
   const cur=sel.value;
   const days=planDays();
-  const inOrders=[...new Set(ORDERS.filter(o=>o.takeDate).map(o=>o.takeDate))];
-  const all=[...new Set([...days.map(d=>d.date),...inOrders])].sort();
-  sel.innerHTML=`<option value="all">📅 전체 수령일</option>`+
-    all.map(d=>{
-      const [y,m,dd]=d.split('-').map(Number);
-      const n=ORDERS.filter(o=>!o.canceled&&o.takeDate===d).reduce((s,o)=>s+o.cups,0);
-      return `<option value="${d}">${m}/${dd}(${DOW[new Date(y,m-1,dd).getDay()]}) · ${n}잔</option>`;
-    }).join('');
+  // 날짜 목록 (계획 + 실제 주문)
+  const dateSet=[...new Set([...days.map(d=>d.date),...ORDERS.filter(o=>o.takeDate).map(o=>o.takeDate)])].sort();
+  let html=`<option value="all">📅 전체 수령일</option>`;
+  dateSet.forEach(dt=>{
+    const [y,m,dd]=dt.split('-').map(Number);
+    const label=`${m}/${dd}(${DOW[new Date(y,m-1,dd).getDay()]})`;
+    const n=ORDERS.filter(o=>!o.canceled&&o.takeDate===dt).reduce((s,o)=>s+o.cups,0);
+    html+=`<option value="${dt}">${label} 전체 · ${n}잔</option>`;
+    // 그 날짜의 교시들
+    const plan=days.find(d=>d.date===dt);
+    const slotNames=[...new Set([
+      ...((plan&&plan.slots)||[]).map(s=>s.name),
+      ...ORDERS.filter(o=>o.takeDate===dt&&o.slot).map(o=>o.slot)
+    ])];
+    slotNames.forEach(sn=>{
+      const c=ORDERS.filter(o=>!o.canceled&&o.takeDate===dt&&o.slot===sn).reduce((s,o)=>s+o.cups,0);
+      html+=`<option value="${dt}|${sn}">　└ ${label} ${sn} · ${c}잔</option>`;
+    });
+  });
+  sel.innerHTML=html;
   sel.value=(cur&&[...sel.options].some(o=>o.value===cur))?cur:'all';
-  sel.style.display=all.length>1?'inline-block':'none';
+  sel.style.display=dateSet.length?'inline-block':'none';
 }
 function dayFilter(){
   const sel=document.getElementById('daySel');
   return (sel&&sel.value&&sel.value!=='all')?sel.value:null;
 }
 function visibleOrders(){
-  const d=dayFilter();
-  return d?ORDERS.filter(o=>o.takeDate===d):ORDERS;
+  const f=dayFilter();
+  if(!f) return ORDERS;
+  if(f.includes('|')){
+    const [d,s]=f.split('|');
+    return ORDERS.filter(o=>o.takeDate===d&&o.slot===s);
+  }
+  return ORDERS.filter(o=>o.takeDate===f);
 }
 function slotOrder(name){
   const {next}=deadlinePair();
