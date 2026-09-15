@@ -144,8 +144,11 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .day-dl{font-size:.7rem;font-weight:500;color:var(--mocha);background:var(--cream);
   border:1px solid var(--line);border-radius:6px;padding:2px 7px}
 .day-dl.over{color:var(--hot);background:var(--hot-soft);border-color:#EEDAD3;font-weight:700}
-.deliver-banner .db-dl{font-size:.7rem;color:var(--mocha);align-self:center}
-.deliver-banner .db-day.closed{opacity:.5}
+.deliver-banner .db-dl{font-size:.72rem;color:var(--mocha);background:#fff;border:1px solid var(--line);
+  border-radius:8px;padding:3px 9px;white-space:nowrap}
+.deliver-banner .db-dl.over{color:var(--hot);background:var(--hot-soft);border-color:#EEDAD3;font-weight:700}
+.deliver-banner .db-day.closed{opacity:.55}
+.deliver-banner .db-day{align-items:center}
 .slot-btn{display:flex;justify-content:space-between;align-items:center;width:100%;
   background:var(--paper);border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;
   font-size:.95rem;color:var(--brew-deep);font-family:inherit;text-align:left}
@@ -744,6 +747,16 @@ function closedState(){
 function tick(){
   const chip=document.getElementById('deadlineChip');
   const cs=closedState();
+  // 수령 날짜별 마감이 따로 있으면 상단 칩은 숨기고 아래 배너 하나로 안내
+  const _pd=planDays();
+  if(_pd.length&&!cs.closed){
+    chip.style.display='none';
+    const dchip=document.getElementById('deliverChip');
+    if(dchip) dchip.style.display='none';
+    renderDeliverBanner();
+    return;
+  }
+  chip.style.display='inline-flex';
   if(cs.closed){
     chip.classList.add('closed');
     document.getElementById('deadlineText').textContent=
@@ -813,6 +826,7 @@ async function init(){
   renderDeliverBanner();
   if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
   tick(); setInterval(tick,30000);
+  setInterval(()=>{ if(planDays().length) renderDeliverBanner(); },30000);
   const cs=closedState();
   if(cs.closed){
     const box=document.createElement('div'); box.className='closed-card';
@@ -874,42 +888,39 @@ function applySeason(){
   }
 }
 
-/* ═════════ 홈: 수령 일정 안내 배너 (복수 날짜) ═════════ */
+/* ═════════ 홈: 수령 일정 안내 배너 (복수 날짜 · 마감 통합) ═════════ */
+function fmtLeft(ms){
+  if(ms<=0) return '';
+  const d=Math.floor(ms/864e5), hh=Math.floor(ms%864e5/36e5), mm=Math.floor(ms%36e5/6e4);
+  return d>0?`${d}일 ${hh}시간 남음`:(hh>0?`${hh}시간 ${mm}분 남음`:`${mm}분 남음`);
+}
 function renderDeliverBanner(){
   const box=document.getElementById('deliverBanner');
   const chip=document.getElementById('deliverChip');
   const days=planDays();
   if(!days.length){ if(box)box.style.display='none'; if(chip)chip.style.display='none'; return; }
-  const icon=isPickup()?'🥤':'🚶';
-  // 헤더 칩: 날짜 여러 개면 요약
-  if(chip){
-    const labels=days.map(d=>{
-      const [y,m,dd]=d.date.split('-').map(Number);
-      return `${m}/${dd}(${DAYNAMES[new Date(y,m-1,dd).getDay()]})`;
-    });
-    chip.textContent=`${icon} ${labels.join(' · ')} ${modeWord()} 예정`;
-    chip.style.display='inline-flex';
-  }
+  if(chip) chip.style.display='none';
   if(!box) return;
+  const icon=isPickup()?'🥤':'🚶';
   const tail=isPickup()?'받을 날짜와 시간을 고를 수 있어요':'받을 날짜와 교시를 고를 수 있어요';
   let html=`<div class="db-t">${icon} ${modeWord()} 일정 · ${tail}</div>`;
   days.forEach(d=>{
     const [y,m,dd]=d.date.split('-').map(Number);
     const dt=new Date(y,m-1,dd);
-    const slots=(d.slots||[]);
-    const chips=slots.map(s=>{
-      const used=slotUsed[d.date+'|'+s.name]||0;
-      const left=s.cap-used;
-      const full=left<=0;
-      return `<span class="db-slot ${full?'full':''}">${s.name}${!full?` · <b>${left}잔</b> 남음`:' · 마감'}</span>`;
-    }).join('');
     const cl=dayClosed(d);
     const dl=dayDeadline(d);
+    const left=fmtLeft(dl-new Date());
+    const chips=(d.slots||[]).map(s=>{
+      const used=slotUsed[d.date+'|'+s.name]||0;
+      const lf=s.cap-used;
+      const full=lf<=0||cl;
+      return `<span class="db-slot ${full?'full':''}">${s.name}${(!full)?` · <b>${lf}잔</b> 남음`:(cl?'':' · 정원 마감')}</span>`;
+    }).join('');
     html+=`<div class="db-day${cl?' closed':''}">
-       <span class="db-date">${m}/${dd}(${DAYNAMES[dt.getDay()]})</span>
-       <span class="db-slots">${chips}
-         <span class="db-dl">${cl?'주문 마감됨':`~ ${dl.getMonth()+1}/${dl.getDate()} ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감`}</span>
-       </span>
+       <span class="db-date">${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</span>
+       <span class="db-slots">${chips}</span>
+       <span class="db-dl${cl?' over':''}">${cl?'⛔ 주문 마감됨'
+         :`🧾 ${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감${left?' · '+left:''}`}</span>
      </div>`;
   });
   html+=`<div class="live-dot"><span class="pip"></span>실시간 현황 · 방금 업데이트됨</div>`;
