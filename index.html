@@ -76,20 +76,42 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .ms-card .pr{font-size:.74rem;font-weight:700;color:var(--gold);margin-top:2px}
 .deliver-banner{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:16px;
   padding:14px 14px 12px;margin-bottom:18px}
-.deliver-banner .db-t{font-size:.86rem;font-weight:700;color:var(--sage);margin-bottom:10px;
+.deliver-banner .db-t{font-size:.86rem;font-weight:700;color:var(--sage);margin-bottom:11px;
   display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.db-day{background:#fff;border:1px solid #DCE8D6;border-radius:12px;padding:11px 13px;margin-bottom:8px}
-.db-day.closed{opacity:.55}
-.db-day-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.db-date{font-size:.95rem;font-weight:700;color:var(--brew-deep);white-space:nowrap}
-.db-dl{font-size:.72rem;color:var(--mocha);white-space:nowrap}
-.db-dl.over{color:var(--hot);font-weight:700}
-.db-slots{display:flex;flex-wrap:wrap;gap:6px}
-.db-slot{background:var(--cream);border:1px solid var(--line);border-radius:999px;
-  padding:5px 12px;font-size:.8rem;color:var(--brew-deep);font-weight:500;white-space:nowrap}
-.db-slot b{color:var(--sage);font-weight:700}
-.db-slot.full{opacity:.45;text-decoration:line-through}
-.live-dot{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--sage);font-weight:700;margin-top:4px}
+/* 날짜 카드 */
+.db-day{position:relative;display:flex;gap:11px;background:#fff;border:1px solid #DCE8D6;
+  border-radius:13px;padding:12px;margin-bottom:9px;align-items:center}
+.db-day.urgent{border-color:#EBCDC4}
+.db-day.over{opacity:.55}
+.db-badge{position:absolute;top:-8px;right:12px;background:var(--hot);color:#fff;
+  font-size:.66rem;font-weight:800;border-radius:999px;padding:3px 10px;letter-spacing:.02em}
+.db-badge.over{background:#9A8F7E}
+/* 달력 조각 */
+.db-cal{flex:none;width:76px;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;
+  text-align:center;background:#fff}
+.cal-top{background:var(--sage);color:#fff;font-size:.62rem;font-weight:700;padding:3px 0}
+.db-day.urgent .cal-top{background:var(--hot)}
+.db-day.over .cal-top{background:#9A8F7E}
+.cal-day{font-size:1.45rem;font-weight:800;color:var(--brew-deep);line-height:1.1;padding-top:4px}
+.cal-sub{font-size:.66rem;color:var(--mocha);padding-bottom:6px}
+/* 오른쪽 정보 */
+.db-info{flex:1;min-width:0}
+.db-date{font-size:.98rem;font-weight:700;color:var(--brew-deep)}
+.db-left{font-size:.73rem;font-weight:700;color:var(--sage);margin-top:2px}
+.db-day.urgent .db-left{color:var(--hot)}
+.db-day.over .db-left{color:var(--mocha)}
+/* 시간대별 진행바 */
+.db-bars{margin-top:8px;display:flex;flex-direction:column;gap:7px}
+.db-slotbar.full{opacity:.5}
+.sb-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.78rem;color:var(--brew-deep)}
+.sb-name{font-weight:500}
+.sb-cnt{color:var(--mocha);white-space:nowrap}
+.sb-cnt b{color:var(--sage);font-weight:700}
+.sb-track{height:7px;background:#EFE7D8;border-radius:999px;margin-top:4px;overflow:hidden}
+.sb-fill{height:100%;background:var(--sage);border-radius:999px;transition:width .4s ease}
+.sb-fill.warn{background:var(--gold)}
+.sb-fill.done{background:#C9BBA6}
+.live-dot{display:flex;align-items:center;gap:5px;font-size:.7rem;color:var(--sage);font-weight:700;margin-top:6px}
 .live-dot .pip{width:7px;height:7px;border-radius:50%;background:var(--sage);
   box-shadow:0 0 0 0 rgba(143,175,126,.6);animation:livepulse 1.8s infinite}
 .slot-btn{display:flex;justify-content:space-between;align-items:center;width:100%;
@@ -944,20 +966,38 @@ function renderDeliverBanner(){
     const dt=new Date(y,m-1,dd);
     const cl=dayClosed(d);
     const dl=dayDeadline(d);
-    const left=fmtLeft(dl-new Date());
-    const chips=(d.slots||[]).map(s=>{
+    const ms=dl-new Date();
+    const left=fmtLeft(ms);
+    const urgent=!cl&&ms<=24*36e5;           // 24시간 이내 = 임박
+    const tone=cl?'over':(urgent?'urgent':'ok');
+    // 시간대별 진행바
+    const bars=(d.slots||[]).map(s=>{
       const used=slotUsed[d.date+'|'+s.name]||0;
-      const lf=s.cap-used;
+      const lf=Math.max(0,s.cap-used);
+      const pct=s.cap>0?Math.min(100,Math.round(used/s.cap*100)):0;
       const full=lf<=0||cl;
-      return `<span class="db-slot ${full?'full':''}">${s.name}${(!full)?` · <b>${lf}잔</b> 남음`:(cl?'':' · 정원 마감')}</span>`;
+      const nearFull=!full&&lf<=Math.max(2,Math.round(s.cap*0.15));
+      return `<div class="db-slotbar${full?' full':''}">
+        <div class="sb-top">
+          <span class="sb-name">${s.name}</span>
+          <span class="sb-cnt">${full?(cl?'주문 마감':'정원 마감'):`<b>${lf}잔</b> / ${s.cap}잔`}</span>
+        </div>
+        <div class="sb-track"><div class="sb-fill${nearFull?' warn':''}${full?' done':''}" style="width:${full?100:pct}%"></div></div>
+      </div>`;
     }).join('');
-    html+=`<div class="db-day${cl?' closed':''}">
-       <div class="db-day-top">
-         <span class="db-date">${isPickup()?'🥤':'🚶'} ${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</span>
-         <span class="db-dl${cl?' over':''}">${cl?'⛔ 주문 마감'
-           :`🧾 ${dl.getMonth()+1}/${dl.getDate()} ${pad(dl.getHours())}:${pad(dl.getMinutes())} 마감${left?' · '+left:''}`}</span>
+    html+=`<div class="db-day ${tone}">
+       ${urgent?'<span class="db-badge">마감 임박</span>':''}
+       ${cl?'<span class="db-badge over">마감</span>':''}
+       <div class="db-cal">
+         <div class="cal-top">${dl.getMonth()+1}월 마감</div>
+         <div class="cal-day">${dl.getDate()}</div>
+         <div class="cal-sub">${DAYNAMES[dl.getDay()]} ${pad(dl.getHours())}:${pad(dl.getMinutes())}</div>
        </div>
-       <div class="db-slots">${chips}</div>
+       <div class="db-info">
+         <div class="db-date">${icon} ${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</div>
+         <div class="db-left">${cl?'⛔ 주문이 마감되었습니다':`${urgent?'⏰':'🗓'} ${left}`}</div>
+         <div class="db-bars">${bars}</div>
+       </div>
      </div>`;
   });
   html+=`<div class="live-dot"><span class="pip"></span>${SETTINGS.liveMsg||'실시간 현황 · 방금 업데이트됨'}</div>`;
