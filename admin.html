@@ -139,6 +139,9 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .icon-btn{flex:0 0 46px;height:38px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
   font-size:1.25rem;line-height:1;cursor:pointer;color:var(--mocha)}
 .icon-btn:hover{border-color:var(--dream)}
+.txt-sec{font-size:.8rem;font-weight:700;color:var(--gold);margin:14px 0 8px;
+  padding-bottom:5px;border-bottom:1px dashed var(--line)}
+.txt-sec:first-of-type{margin-top:4px}
 .emoji-panel{margin-top:10px;background:var(--cream);border:1px solid var(--line);border-radius:12px;padding:12px}
 .ep-t{font-size:.8rem;color:var(--mocha);margin-bottom:8px}
 .ep-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}
@@ -563,16 +566,46 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <button class="btn line sm" style="margin-top:6px" onclick="addOptGroup()">＋ 옵션 그룹 추가</button>
       </div>
       <div class="set-group">
-        <h4>✏️ 홈 화면 안내 문구</h4>
+        <h4>✏️ 홈 화면 문구 설정</h4>
+        <p class="hint" style="margin-bottom:12px">주문 페이지에 보이는 문구를 자유롭게 바꿀 수 있습니다.
+        비워 두면 기본 문구가 쓰이고, <b>배달/픽업</b> 단어는 운영 방식에 따라 자동으로 바뀝니다.</p>
+
+        <div class="txt-sec">① 상단 · 소개</div>
         <div class="set-row"><label>슬로건</label><input id="setSlogan" placeholder="꿈을 한 잔씩 우려냅니다"></div>
         <div class="set-row" style="align-items:flex-start"><label style="padding-top:10px">소개문</label>
           <textarea id="setIntro" style="flex:1;min-height:80px" placeholder="특수학급 실습카페 '꿈Brew'는…"></textarea></div>
-        <div style="border-top:1px dashed var(--line);margin:12px 0"></div>
+
+        <div class="txt-sec">② 수령 일정 안내</div>
+        <div class="set-row"><label>안내 제목</label><input id="setSchedTitle" placeholder="받을 날짜와 교시를 고를 수 있어요"></div>
+        <div class="set-row"><label>실시간 문구</label><input id="setLiveMsg" placeholder="실시간 현황 · 방금 업데이트됨"></div>
+
+        <div class="txt-sec">③ 이용 안내 3단계</div>
+        <div class="set-row">
+          <label>STEP 1</label>
+          <input id="setStep1Ic" placeholder="🧾" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <input id="setStep1" placeholder="마감 전까지 / 주문 접수" style="flex:1">
+        </div>
+        <div class="set-row">
+          <label>STEP 2</label>
+          <input id="setStep2Ic" placeholder="☕" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <input id="setStep2" placeholder="학생들이 / 정성껏 제조" style="flex:1">
+        </div>
+        <div class="set-row">
+          <label>STEP 3</label>
+          <input id="setStep3Ic" placeholder="🚶" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <input id="setStep3" placeholder="선생님 자리로 / 배달" style="flex:1">
+        </div>
+        <p class="hint">슬래시(/)로 나누면 두 줄로 표시됩니다. 앞 칸은 아이콘(이모지)입니다.</p>
+
+        <div class="txt-sec">④ 메뉴 · 명단</div>
+        <div class="set-row"><label>메뉴 라벨</label><input id="setStripLabel" placeholder="MENU · 이번 주 메뉴"></div>
+        <div class="set-row"><label>명단 제목</label><input id="setPickTitle" placeholder="어서 오세요, 선생님 ☕"></div>
+        <div class="set-row"><label>명단 설명</label><input id="setPickDesc" placeholder="이름을 검색하거나 자리별 목록에서 선택해 주세요."></div>
+
+        <div class="txt-sec">⑤ 주문 화면</div>
         <div class="set-row"><label>메뉴 제목</label><input id="setMenuTitle" placeholder="오늘의 메뉴"></div>
         <div class="set-row"><label>메뉴 설명</label><input id="setMenuDesc" placeholder="학생들이 정성껏 만들어 드립니다."></div>
         <div class="set-row"><label>완료 문구</label><input id="setDoneMsg" placeholder="주문이 접수되었어요!"></div>
-        <p class="hint">홈 화면과 주문 완료 화면에 표시되는 문구입니다. 비워 두면 기본 문구가 쓰입니다.
-        <br>배달/픽업 같은 단어는 위에서 고른 <b>운영 방식</b>에 따라 자동으로 바뀝니다.</p>
       </div>
       <div class="set-group">
         <h4>📖 메뉴 · 가격</h4>
@@ -775,7 +808,9 @@ let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay
   menuDesc:'',
   theme:'auto',
   mode:'delivery', pickupPlace:'통합교육실2 앞 꿈Brew 카페',
-  slogan:'꿈을 한 잔씩 우려냅니다', intro:'', doneMsg:'주문이 접수되었어요!'};
+  slogan:'꿈을 한 잔씩 우려냅니다', intro:'', doneMsg:'주문이 접수되었어요!',
+  schedTitle:'', liveMsg:'', stripLabel:'', pickTitle:'', pickDesc:'',
+  step1:'', step1Ic:'', step2:'', step2Ic:'', step3:'', step3Ic:''};
 let PLANS={};        // week -> {deadAt, deliverDate, slots:[{name,cap}]}
 let unsubMsgs=null, MSGS=[];
 let ADMIN=null, ORDERS=[], MEMBERS=[], unsubOrders=null, unsubOps=null, unsubLogs=null, curWeek=null;
@@ -1653,6 +1688,11 @@ function fillSettingsUI(){
   document.getElementById('setSlogan').value=SETTINGS.slogan||'';
   document.getElementById('setIntro').value=SETTINGS.intro||'';
   document.getElementById('setDoneMsg').value=SETTINGS.doneMsg||'';
+  ['schedTitle','liveMsg','stripLabel','pickTitle','pickDesc',
+   'step1','step1Ic','step2','step2Ic','step3','step3Ic'].forEach(k=>{
+    const el=document.getElementById('set'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) el.value=SETTINGS[k]||'';
+  });
   document.getElementById('modeDelivery').onchange=modeToggle;
   document.getElementById('modePickup').onchange=modeToggle;
   const og=document.getElementById('optGroupList'); og.innerHTML='';
@@ -1708,6 +1748,17 @@ async function saveSettings(){
     slogan:document.getElementById('setSlogan').value.trim()||'꿈을 한 잔씩 우려냅니다',
     intro:document.getElementById('setIntro').value.trim(),
     doneMsg:document.getElementById('setDoneMsg').value.trim()||'주문이 접수되었어요!',
+    schedTitle:document.getElementById('setSchedTitle').value.trim(),
+    liveMsg:document.getElementById('setLiveMsg').value.trim(),
+    stripLabel:document.getElementById('setStripLabel').value.trim(),
+    pickTitle:document.getElementById('setPickTitle').value.trim(),
+    pickDesc:document.getElementById('setPickDesc').value.trim(),
+    step1:document.getElementById('setStep1').value.trim(),
+    step1Ic:document.getElementById('setStep1Ic').value.trim(),
+    step2:document.getElementById('setStep2').value.trim(),
+    step2Ic:document.getElementById('setStep2Ic').value.trim(),
+    step3:document.getElementById('setStep3').value.trim(),
+    step3Ic:document.getElementById('setStep3Ic').value.trim(),
     optGroups:[...document.querySelectorAll('#optGroupList .og-card')].map(c=>({
       id:c.dataset.id,
       name:c.querySelector('[data-f=name]').value.trim(),

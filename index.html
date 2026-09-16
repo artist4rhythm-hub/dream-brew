@@ -346,6 +346,49 @@ header .deco{z-index:0}
   .tabs::-webkit-scrollbar{display:block;height:4px}
   .tabs::-webkit-scrollbar-thumb{background:#D9CBB2;border-radius:99px}
 }
+
+/* ── 상단 네비게이션 ── */
+.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;
+  gap:10px;padding:9px 16px;background:rgba(255,253,248,.94);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line)}
+.nav-btn{background:none;border:none;font-size:.82rem;color:var(--mocha);font-weight:700;
+  padding:7px 10px;border-radius:9px;white-space:nowrap;cursor:pointer;
+  font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.nav-btn:active{background:var(--cream)}
+.steps-dot{display:flex;gap:6px;align-items:center}
+.steps-dot span{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.steps-dot span.on{background:var(--gold);width:18px;border-radius:99px}
+.steps-dot span.done{background:var(--sage)}
+
+/* ── 내 주문 버튼 ── */
+.myorders-btn{background:var(--paper);border:1px solid var(--line);border-radius:999px;
+  padding:6px 13px;font-size:.76rem;color:var(--brew);font-weight:700;white-space:nowrap;
+  cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+.myorders-btn:active{background:var(--cream)}
+
+/* ── 선택한 수령 일정 안내 ── */
+.take-note{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:12px;
+  padding:11px 14px;margin-bottom:14px;font-size:.86rem;color:var(--sage);font-weight:700;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.take-note button{background:#fff;border:1px solid #DCE8D6;border-radius:9px;
+  padding:5px 12px;font-size:.76rem;color:var(--sage);font-weight:700;cursor:pointer;
+  font-family:inherit;white-space:nowrap}
+.take-note button:active{background:var(--sage-soft)}
+
+/* ── 날짜 그룹 라벨 (수령일 선택) ── */
+.day-cap{font-size:.84rem;font-weight:700;color:var(--gold);margin:16px 2px 4px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.day-dl{font-size:.7rem;font-weight:500;color:var(--mocha);background:var(--cream);
+  border:1px solid var(--line);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.day-dl.over{color:var(--hot);background:var(--hot-soft);border-color:#EEDAD3;font-weight:700}
+
+/* ── 음료 옵션 선택 ── */
+.ice-picks{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:none}
+.ice-picks.show{display:block}
+.ice-pick{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:.82rem}
+.ice-pick .lbl{color:var(--mocha);white-space:nowrap}
+.ice-pick select{flex:1;font-family:inherit;font-size:.82rem;padding:6px 9px;border:1px solid var(--line);
+  border-radius:8px;background:#fff;color:var(--brew-deep);max-width:160px}
 </style>
 </head>
 <body>
@@ -375,7 +418,7 @@ header .deco{z-index:0}
   <div class="navbar" id="navBar" style="display:none">
     <button class="nav-btn" onclick="navBack()">← 뒤로</button>
     <div class="steps-dot" id="stepsDot"></div>
-    <button class="nav-btn" onclick="goHome()">🏠 처음으로</button>
+    <button class="nav-btn" onclick="goHome()"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" style="vertical-align:-2px"><path d="M3 11.2 12 4l9 7.2V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-8.8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> 처음으로</button>
   </div>
   <main>
     <!-- ═══ 1. 로그인 ═══ -->
@@ -388,16 +431,16 @@ header .deco{z-index:0}
           ‘꿈을 한 잔씩 우려냅니다’라는 슬로건처럼, 학생들의 작은 도전이 성장의 기회가 되기를 기대합니다.
         </div>
         <div class="steps fu" style="animation-delay:.1s">
-          <div class="step"><span class="ic">🧾</span><span class="num">STEP 1</span><div class="tt">마감 전까지<br>주문 접수</div></div>
-          <div class="step"><span class="ic">☕</span><span class="num">STEP 2</span><div class="tt">학생들이<br>정성껏 제조</div></div>
+          <div class="step" id="step1"><span class="ic">🧾</span><span class="num">STEP 1</span><div class="tt">마감 전까지<br>주문 접수</div></div>
+          <div class="step" id="step2"><span class="ic">☕</span><span class="num">STEP 2</span><div class="tt">학생들이<br>정성껏 제조</div></div>
           <div class="step" id="step3"><span class="ic">🚶</span><span class="num">STEP 3</span><div class="tt">선생님 자리로<br>배달</div></div>
         </div>
         <div class="fu" style="animation-delay:.2s">
-          <div class="strip-label">MENU · 이번 주 메뉴</div>
+          <div class="strip-label" id="stripLabel">MENU · 이번 주 메뉴</div>
           <div class="menu-strip" id="menuStrip"></div>
         </div>
-        <h2 class="step-title">어서 오세요, 선생님 ☕</h2>
-        <p class="step-desc">이름을 검색하거나 자리별 목록에서 선택해 주세요.</p>
+        <h2 class="step-title" id="pickTitle">어서 오세요, 선생님 ☕</h2>
+        <p class="step-desc" id="pickDesc">이름을 검색하거나 자리별 목록에서 선택해 주세요.</p>
         <div class="search-box">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="#8A7660" stroke-width="1.6"/><path d="M11 11l3.2 3.2" stroke="#8A7660" stroke-width="1.6" stroke-linecap="round"/></svg>
           <input type="search" id="searchInput" placeholder="이름 검색 (예: 장선진)" autocomplete="off">
@@ -457,7 +500,7 @@ header .deco{z-index:0}
         <span id="helloText"></span>
         <span style="display:flex;gap:6px;align-items:center">
           <span class="coupon-badge" id="couponBadge"></span>
-          <button class="myorders-btn" onclick="openMyOrders()">📋 내 주문</button>
+          <button class="myorders-btn" onclick="openMyOrders()"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="vertical-align:-2px"><rect x="4" y="3" width="16" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> 내 주문</button>
         </span>
       </div>
       <div class="take-note" id="takeNote" style="display:none"></div>
@@ -555,7 +598,7 @@ header .deco{z-index:0}
         <div class="ticket-body" id="ticketBody"></div>
       </div>
       <p class="hint" style="margin-top:16px" id="doneHint">학생들이 직접 만들어 드립니다 💛</p>
-      <button class="btn" style="margin-top:14px" onclick="openMyOrders()">📋 내 주문 현황 보기</button>
+      <button class="btn" style="margin-top:14px" onclick="openMyOrders()">내 주문 현황 보기</button>
       <button class="btn ghost" onclick="location.reload()">처음으로</button>
     </section>
     <!-- ═══ 7. 내 주문 현황 ═══ -->
@@ -612,7 +655,9 @@ const DEFAULT_MENUS=[
 ];
 let SETTINGS={bank:'신한',acct:'110-384-767823',holder:'장선진',deadlineDay:4,deadlineTime:'16:00',
   menus:DEFAULT_MENUS,iceOpts:[],optGroups:[],menuTitle:'오늘의 메뉴',menuDesc:'',
-  theme:'auto',mode:'delivery',pickupPlace:'꿈Brew 카페',slogan:'꿈을 한 잔씩 우려냅니다',intro:'',doneMsg:'주문이 접수되었어요!'};
+  theme:'auto',mode:'delivery',pickupPlace:'꿈Brew 카페',slogan:'꿈을 한 잔씩 우려냅니다',intro:'',doneMsg:'주문이 접수되었어요!',
+  schedTitle:'',liveMsg:'',stripLabel:'',pickTitle:'',pickDesc:'',
+  step1:'',step1Ic:'',step2:'',step2Ic:'',step3:'',step3Ic:''};
 let PLAN=null;        // 이번 주차 일정 {deadDate,deadTime,deliverDate,slots:[{name,cap}]}
 const CUP_ICON='<svg class="cup-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h12v7a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5V8z" fill="#C9B79A"/><path d="M17 9h2.2a2.8 2.8 0 0 1 0 5.6H17" fill="none" stroke="#C9B79A" stroke-width="1.8"/><path d="M8 5.2c0-1 1-1.4 1-2.4M11.5 5.2c0-1 1-1.4 1-2.4M15 5.2c0-1 1-1.4 1-2.4" stroke="#D8CBB5" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>';
 const isPickup=()=>SETTINGS.mode==='pickup';
@@ -778,8 +823,7 @@ async function init(){
   document.getElementById('menuStrip').innerHTML=
     MENUS.map(m=>`<div class="ms-card"><span class="ic">${m.icon||CUP_ICON}</span>
       <div class="nm">${m.name}</div><div class="pr">${m.price.toLocaleString()}원</div></div>`).join('');
-  const s3=document.getElementById('step3');
-  if(s3&&isPickup()) s3.innerHTML='<span class="ic">🥤</span><span class="num">STEP 3</span><div class="tt">카페에서<br>픽업</div>';
+  applyStepTexts();
   renderDeliverBanner();
   if(typeof refreshHScroll==='function') setTimeout(refreshHScroll,0);
   tick(); setInterval(tick,30000);
@@ -810,6 +854,31 @@ async function init(){
   }catch(e){ console.error('members',e); }
   renderTabs();
   renderMembers();
+}
+
+/* ═════════ 홈 문구 적용 ═════════ */
+function twoLine(t){ return (t||'').split('/').map(s=>s.trim()).filter(Boolean).join('<br>'); }
+function applyStepTexts(){
+  const defs=[
+    {id:'step1',ic:'🧾',tt:'마감 전까지<br>주문 접수'},
+    {id:'step2',ic:'☕',tt:'학생들이<br>정성껏 제조'},
+    {id:'step3',ic:isPickup()?'🥤':'🚶',
+      tt:isPickup()?'카페에서<br>픽업':'선생님 자리로<br>배달'}
+  ];
+  defs.forEach((d,i)=>{
+    const el=document.getElementById(d.id);
+    if(!el) return;
+    const n=i+1;
+    const ic=SETTINGS['step'+n+'Ic']||d.ic;
+    const tt=twoLine(SETTINGS['step'+n])||d.tt;
+    el.innerHTML=`<span class="ic">${ic}</span><span class="num">STEP ${n}</span><div class="tt">${tt}</div>`;
+  });
+  const sl=document.getElementById('stripLabel');
+  if(sl&&SETTINGS.stripLabel) sl.textContent=SETTINGS.stripLabel;
+  const pt=document.getElementById('pickTitle');
+  if(pt&&SETTINGS.pickTitle) pt.textContent=SETTINGS.pickTitle;
+  const pd=document.getElementById('pickDesc');
+  if(pd&&SETTINGS.pickDesc) pd.textContent=SETTINGS.pickDesc;
 }
 
 /* ═════════ 계절 테마 ═════════ */
@@ -868,7 +937,7 @@ function renderDeliverBanner(){
   if(chip) chip.style.display='none';
   if(!box) return;
   const icon=isPickup()?'🥤':'🚶';
-  const tail=isPickup()?'받을 날짜와 시간을 고를 수 있어요':'받을 날짜와 교시를 고를 수 있어요';
+  const tail=SETTINGS.schedTitle||(isPickup()?'받을 날짜와 시간을 고를 수 있어요':'받을 날짜와 교시를 고를 수 있어요');
   let html=`<div class="db-t">${icon} ${modeWord()} 일정 · ${tail}</div>`;
   days.forEach(d=>{
     const [y,m,dd]=d.date.split('-').map(Number);
@@ -891,7 +960,7 @@ function renderDeliverBanner(){
        <div class="db-slots">${chips}</div>
      </div>`;
   });
-  html+=`<div class="live-dot"><span class="pip"></span>실시간 현황 · 방금 업데이트됨</div>`;
+  html+=`<div class="live-dot"><span class="pip"></span>${SETTINGS.liveMsg||'실시간 현황 · 방금 업데이트됨'}</div>`;
   box.innerHTML=html;
   box.style.display='block';
 }
