@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null;
+    }
+    function isSuper() {
+      return request.auth != null
+        && request.auth.token.email == 'super01@dream-brew.app';
+    }
+
+    // 설정: 누구나 읽기, 관리자만 쓰기
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 주차별 일정(마감·배달/픽업일·교시 정원): 누구나 읽기, 관리자만 쓰기
+    match /plans/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 교직원 명단: 누구나 읽기,
+    // 비로그인은 pin·coupons 필드만 수정 가능(PIN 설정, 쿠폰 사용/반환)
+    match /members/{id} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || request.resource.data.diff(resource.data)
+             .affectedKeys().hasOnly(['pin','coupons']);
+    }
+
+    // 명단 보관함(전근·퇴직 보관): 관리자 전용
+    match /members_archive/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // 주문: 생성은 미확정 상태로만, 취소는 제조 전에만, 삭제는 관리자만
+    match /orders/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.confirmed == false
+        && request.resource.data.made == false
+        && request.resource.data.delivered == false
+        && request.resource.data.pay is number
+        && request.resource.data.pay >= 0
+        && request.resource.data.week is string;
+      allow update: if isAdmin()
+        || ( request.resource.data.diff(resource.data)
+               .affectedKeys().hasOnly(['canceled','canceledAt'])
+             && request.resource.data.canceled == true
+             && resource.data.made == false
+             && resource.data.delivered == false );
+      allow delete: if isAdmin();
+    }
+
+    // 쿠폰 내역: 기록은 추가만 가능(수정 불가), 조회·삭제는 관리자만
+    match /coupon_logs/{id} {
+      allow read, delete: if isAdmin();
+      allow create: if true;
+      allow update: if false;
+    }
+
+    // 후기·메시지: 선생님은 보내기만, 읽기·삭제는 관리자만
+    match /messages/{id} {
+      allow read, delete: if isAdmin();
+      allow create: if true;
+      allow update: if false;
+    }
+
+    // 관리자 계정: 로그인한 관리자만 읽기, 수정은 수퍼 관리자만
+    match /admins/{id} {
+      allow read: if isAdmin();
+      allow write: if isSuper();
+    }
+  }
+}
