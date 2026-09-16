@@ -148,6 +148,12 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .ep-grid button{height:42px;border:1px solid var(--line);border-radius:10px;background:#fff;
   font-size:1.3rem;line-height:1;cursor:pointer}
 .ep-grid button:hover{border-color:var(--sage);background:var(--sage-soft)}
+.ep-close{background:none!important;border:none!important;font-size:.74rem!important;
+  color:var(--mocha);float:right;cursor:pointer;height:auto!important;padding:0!important}
+.ep-search{width:100%;margin-bottom:10px;font-size:.86rem;padding:9px 12px;
+  border:1.5px solid var(--line);border-radius:10px;background:#fff}
+.ep-cat{font-size:.74rem;font-weight:700;color:var(--gold);margin:10px 0 6px}
+.emoji-panel{max-height:340px;overflow-y:auto}
 .menu-set-row input[type=text]{flex:2} .menu-set-row input[type=number]{flex:1;min-width:90px}
 
 .hint{font-size:.76rem;color:var(--mocha)}
@@ -582,20 +588,24 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
         <div class="txt-sec">③ 이용 안내 3단계</div>
         <div class="set-row">
           <label>STEP 1</label>
-          <input id="setStep1Ic" placeholder="🧾" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <button type="button" class="icon-btn" id="setStep1Ic" data-icon=""
+            onclick="openEmojiPanel(this,'STEP 1')">＋</button>
           <input id="setStep1" placeholder="마감 전까지 / 주문 접수" style="flex:1">
         </div>
         <div class="set-row">
           <label>STEP 2</label>
-          <input id="setStep2Ic" placeholder="☕" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <button type="button" class="icon-btn" id="setStep2Ic" data-icon=""
+            onclick="openEmojiPanel(this,'STEP 2')">＋</button>
           <input id="setStep2" placeholder="학생들이 / 정성껏 제조" style="flex:1">
         </div>
         <div class="set-row">
           <label>STEP 3</label>
-          <input id="setStep3Ic" placeholder="🚶" maxlength="4" style="flex:0 0 52px;text-align:center">
+          <button type="button" class="icon-btn" id="setStep3Ic" data-icon=""
+            onclick="openEmojiPanel(this,'STEP 3')">＋</button>
           <input id="setStep3" placeholder="선생님 자리로 / 배달" style="flex:1">
         </div>
-        <p class="hint">슬래시(/)로 나누면 두 줄로 표시됩니다. 앞 칸은 아이콘(이모지)입니다.</p>
+        <p class="hint">슬래시(/)로 나누면 두 줄로 표시됩니다. 앞 칸을 누르면 아이콘을 고를 수 있어요.</p>
+        <div id="emojiPanelStep" class="emoji-panel" style="display:none"></div>
 
         <div class="txt-sec">④ 메뉴 · 명단</div>
         <div class="set-row"><label>메뉴 라벨</label><input id="setStripLabel" placeholder="MENU · 이번 주 메뉴"></div>
@@ -1645,23 +1655,71 @@ function applyModeLabels(){
   const rt=document.getElementById('routeSecTitle'); if(rt) rt.textContent=pk?'픽업 시간대별 목록':'배달 동선표';
   const rd=document.getElementById('routeSecDesc'); if(rd) rd.textContent=pk?'픽업 시간대별로 묶었습니다. 준비·전달 안내에 활용하세요.':'배달 위치별로 묶었습니다. 학생들 배달 순서 안내에 활용하세요.';
 }
-const EMOJIS=['☕','🍵','🧋','🥤','🧃','🥛','🧉','🍹','🍓','🍊','🍋','🍇','🍑','🥭','🍫','🌿','🍯','🫐','🍠','🌾','🧊','🔥','🍰','🫖','🌸','🥥'];
-let emojiTarget=null;
-function openEmojiPanel(btn){
+const EMOJI_CATS=[
+ {t:'음료',list:[['☕','커피 아메리카노'],['🍵','녹차 말차 티'],['🫖','티포트 차'],['🧋','버블티 밀크티'],
+  ['🥤','음료 소다 에이드'],['🧃','주스 에이드'],['🥛','우유 라떼'],['🧉','마테 허브차'],
+  ['🍹','칵테일 에이드 트로피컬'],['🍶','전통음료'],['🥂','축하 음료'],['🍾','스파클링'],
+  ['🍺','생맥 거품'],['🫗','따르기 음료'],['🧊','아이스 얼음'],['🔥','핫 뜨거운']]},
+ {t:'과일',list:[['🍓','딸기'],['🍊','오렌지 자몽 감귤'],['🍋','레몬 유자'],['🍇','포도 청포도'],
+  ['🍑','복숭아'],['🥭','망고'],['🍍','파인애플'],['🥝','키위'],['🍏','사과 청사과'],['🍎','사과'],
+  ['🍒','체리'],['🫐','블루베리'],['🍉','수박'],['🍈','멜론'],['🥥','코코넛'],['🍐','배'],
+  ['🍌','바나나'],['🍅','토마토'],['🫒','올리브']]},
+ {t:'디저트·베이커리',list:[['🍰','케이크 조각'],['🎂','케이크'],['🧁','컵케이크'],['🍮','푸딩 플랜'],
+  ['🍨','아이스크림 선데'],['🍦','소프트 아이스크림 바닐라'],['🍧','빙수'],['🍪','쿠키'],
+  ['🥐','크루아상'],['🥖','바게트'],['🍞','식빵'],['🥯','베이글'],['🧇','와플'],['🥞','팬케이크'],
+  ['🍩','도넛'],['🍫','초콜릿'],['🍬','사탕'],['🍯','꿀']]},
+ {t:'재료·기타',list:[['🌿','민트 허브'],['🌾','오곡 곡물 그레인'],['🥜','땅콩 견과'],['🌰','밤 견과'],
+  ['🫘','콩'],['🍠','고구마'],['🎃','호박'],['🧂','소금'],['🥄','스푼'],['🧑‍🍳','제조 요리'],
+  ['🌸','벚꽃 봄'],['🍁','단풍 가을'],['❄️','겨울 눈'],['🌱','새싹'],['💛','하트 마음'],
+  ['⭐','별 추천'],['🆕','신메뉴'],['🔖','태그'],['🧾','영수증 주문'],['📝','작성 주문'],
+  ['🚶','배달 걷기'],['🎁','선물 전달'],['🏫','학교'],['🥳','축하']]}
+];
+const EMOJIS=EMOJI_CATS.flatMap(c=>c.list.map(x=>x[0]));
+let emojiTarget=null, emojiPanelId='emojiPanel';
+function openEmojiPanel(btn,label){
   emojiTarget=btn;
-  const p=document.getElementById('emojiPanel');
-  p.innerHTML=`<div class="ep-t">아이콘 선택 — <b>${btn.closest('.menu-set-row').querySelector('[data-f=name]').value||'새 메뉴'}</b></div>`+
-    `<div class="ep-grid">`+
-    `<button type="button" onclick="setEmoji('')" title="없음">✕</button>`+
-    EMOJIS.map(e=>`<button type="button" onclick="setEmoji('${e}')">${e}</button>`).join('')+
-    `</div>`;
+  emojiPanelId = btn.id&&btn.id.startsWith('setStep') ? 'emojiPanelStep' : 'emojiPanel';
+  // 다른 패널은 닫기
+  ['emojiPanel','emojiPanelStep'].forEach(id=>{
+    const el=document.getElementById(id); if(el&&id!==emojiPanelId) el.style.display='none';
+  });
+  const name=label||(btn.closest('.menu-set-row')?.querySelector('[data-f=name]')?.value)||'새 메뉴';
+  const p=document.getElementById(emojiPanelId);
+  p.innerHTML=`<div class="ep-t">아이콘 선택 — <b>${name}</b>
+      <button type="button" class="ep-close" onclick="closeEmojiPanel()">✕ 닫기</button></div>
+    <input type="search" class="ep-search" placeholder="이름으로 검색 (예: 딸기, 커피, 얼음)"
+      oninput="renderEmojiGrid(this.value)">
+    <div id="epBody"></div>`;
   p.style.display='block';
+  renderEmojiGrid('');
   p.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function renderEmojiGrid(q){
+  const body=document.getElementById('epBody');
+  if(!body) return;
+  const kw=(q||'').trim().toLowerCase();
+  let html=`<div class="ep-grid"><button type="button" onclick="setEmoji('')" title="아이콘 없음">✕</button></div>`;
+  if(kw){
+    const hits=EMOJI_CATS.flatMap(c=>c.list).filter(([e,tags])=>tags.toLowerCase().includes(kw));
+    html=`<div class="ep-grid">`+
+      (hits.length?hits.map(([e])=>`<button type="button" onclick="setEmoji('${e}')">${e}</button>`).join('')
+        :`<span class="hint" style="grid-column:1/-1;padding:8px">검색 결과가 없어요</span>`)+`</div>`;
+  }else{
+    html=`<div class="ep-grid"><button type="button" onclick="setEmoji('')" title="아이콘 없음">✕</button></div>`+
+      EMOJI_CATS.map(c=>`<div class="ep-cat">${c.t}</div>
+        <div class="ep-grid">${c.list.map(([e,tags])=>
+          `<button type="button" onclick="setEmoji('${e}')" title="${tags}">${e}</button>`).join('')}</div>`).join('');
+  }
+  body.innerHTML=html;
+}
+function closeEmojiPanel(){
+  const p=document.getElementById(emojiPanelId);
+  if(p) p.style.display='none';
+  emojiTarget=null;
 }
 function setEmoji(e){
   if(emojiTarget){ emojiTarget.dataset.icon=e; emojiTarget.textContent=e||'＋'; }
-  document.getElementById('emojiPanel').style.display='none';
-  emojiTarget=null;
+  closeEmojiPanel();
 }
 function modeToggle(){
   const pk=document.getElementById('modePickup').checked;
@@ -1688,10 +1746,13 @@ function fillSettingsUI(){
   document.getElementById('setSlogan').value=SETTINGS.slogan||'';
   document.getElementById('setIntro').value=SETTINGS.intro||'';
   document.getElementById('setDoneMsg').value=SETTINGS.doneMsg||'';
-  ['schedTitle','liveMsg','stripLabel','pickTitle','pickDesc',
-   'step1','step1Ic','step2','step2Ic','step3','step3Ic'].forEach(k=>{
+  ['schedTitle','liveMsg','stripLabel','pickTitle','pickDesc','step1','step2','step3'].forEach(k=>{
     const el=document.getElementById('set'+k.charAt(0).toUpperCase()+k.slice(1));
     if(el) el.value=SETTINGS[k]||'';
+  });
+  [['setStep1Ic','step1Ic','🧾'],['setStep2Ic','step2Ic','☕'],['setStep3Ic','step3Ic','🚶']].forEach(([id,key,def])=>{
+    const el=document.getElementById(id);
+    if(el){ el.dataset.icon=SETTINGS[key]||''; el.textContent=SETTINGS[key]||def; }
   });
   document.getElementById('modeDelivery').onchange=modeToggle;
   document.getElementById('modePickup').onchange=modeToggle;
@@ -1754,11 +1815,11 @@ async function saveSettings(){
     pickTitle:document.getElementById('setPickTitle').value.trim(),
     pickDesc:document.getElementById('setPickDesc').value.trim(),
     step1:document.getElementById('setStep1').value.trim(),
-    step1Ic:document.getElementById('setStep1Ic').value.trim(),
+    step1Ic:(document.getElementById('setStep1Ic').dataset.icon||'').trim(),
     step2:document.getElementById('setStep2').value.trim(),
-    step2Ic:document.getElementById('setStep2Ic').value.trim(),
+    step2Ic:(document.getElementById('setStep2Ic').dataset.icon||'').trim(),
     step3:document.getElementById('setStep3').value.trim(),
-    step3Ic:document.getElementById('setStep3Ic').value.trim(),
+    step3Ic:(document.getElementById('setStep3Ic').dataset.icon||'').trim(),
     optGroups:[...document.querySelectorAll('#optGroupList .og-card')].map(c=>({
       id:c.dataset.id,
       name:c.querySelector('[data-f=name]').value.trim(),
