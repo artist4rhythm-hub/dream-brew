@@ -159,7 +159,7 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .hint{font-size:.76rem;color:var(--mocha)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 /* 관리자 상단 수령 일정 배너 (주문 페이지와 동일) */
-.admin-banner{max-width:1100px;margin:14px auto 0;padding:0 20px}
+.admin-banner{margin:14px 20px 0}
 .ab-box{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:16px;padding:13px 14px 11px}
 .ab-t{font-size:.84rem;font-weight:700;color:var(--sage);margin-bottom:10px}
 .ab-day{position:relative;display:flex;gap:12px;background:#fff;border:1px solid #DCE8D6;
@@ -167,12 +167,14 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .ab-day:last-child{margin-bottom:0}
 .ab-day.urgent{border-color:#EBCDC4}
 .ab-day.over{opacity:.55}
-.ab-cal{flex:none;width:72px;border-radius:12px;overflow:hidden;text-align:center;
+.ab-cal{flex:none;width:84px;border-radius:12px;overflow:hidden;text-align:center;
   background:var(--sage);color:#fff;padding-bottom:6px}
 .ab-day.over .ab-cal{background:#9A8F7E}
 .ab-cal .t{font-size:.62rem;font-weight:700;opacity:.92;padding:4px 0 1px}
 .ab-cal .d{font-size:1.6rem;font-weight:800;line-height:1.05}
 .ab-cal .s{font-size:.66rem;font-weight:600;opacity:.95}
+.ab-cal .tm{font-size:.6rem;font-weight:600;background:rgba(255,255,255,.25);border-radius:6px;
+  margin:4px 4px 0;padding:2px 3px;line-height:1.45}
 .ab-info{flex:1;min-width:0}
 .ab-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ab-date{font-size:.94rem;font-weight:700;color:var(--brew-deep);white-space:nowrap}
@@ -190,7 +192,7 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 .ab-fill{height:100%;background:var(--sage);border-radius:999px}
 .ab-fill.warn{background:var(--gold)}
 .ab-fill.done{background:#C9BBA6}
-@media(max-width:520px){.admin-banner{padding:0 8px}}
+@media(max-width:520px){.admin-banner{margin:10px 8px 0}}
 /* 수령 날짜 블록 */
 .take-chip{display:inline-block;font-size:.72rem;font-weight:700;background:var(--sage-soft);
   color:var(--sage);border:1px solid #DCE8D6;border-radius:6px;padding:2px 8px;margin-left:6px}
@@ -1368,7 +1370,8 @@ function renderAdminBanner(){
       </div>`;
     }).join('');
     html+=`<div class="ab-day ${tone}">
-      <div class="ab-cal"><div class="t">${m}월</div><div class="d">${dd}</div><div class="s">${DOW[dt.getDay()]}요일</div></div>
+      <div class="ab-cal"><div class="t">${m}월</div><div class="d">${dd}</div><div class="s">${DOW[dt.getDay()]}요일</div>
+        ${(d.slots||[]).length?`<div class="tm">${(d.slots||[]).map(s=>s.name).join('<br>')}</div>`:''}</div>
       <div class="ab-info">
         <div class="ab-head"><span class="ab-date">${icon} ${modeWord()} 예정</span>
           <span class="ab-dl ${tone}">${cl?'⛔ 주문 마감':`⏰ ${fmtLeftAdmin(ms)}`}</span></div>

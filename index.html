@@ -84,13 +84,15 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .db-day.urgent{border-color:#EBCDC4}
 .db-day.over{opacity:.55}
 /* 배달일 달력 (주인공) */
-.db-cal{flex:none;width:78px;border-radius:12px;overflow:hidden;text-align:center;
+.db-cal{flex:none;width:88px;border-radius:12px;overflow:hidden;text-align:center;
   background:var(--sage);color:#fff;padding-bottom:7px}
 .db-day.urgent .db-cal{background:var(--sage)}
 .db-day.over .db-cal{background:#9A8F7E}
 .cal-top{font-size:.66rem;font-weight:700;opacity:.92;padding:4px 0 1px}
 .cal-day{font-size:1.85rem;font-weight:800;line-height:1.05;letter-spacing:-.02em}
 .cal-sub{font-size:.7rem;font-weight:600;opacity:.95;margin-top:1px}
+.cal-time{font-size:.64rem;font-weight:600;background:rgba(255,255,255,.25);border-radius:7px;
+  margin:5px 5px 0;padding:3px 4px;line-height:1.5;letter-spacing:-.01em}
 /* 오른쪽 정보 */
 .db-info{flex:1;min-width:0}
 .db-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -989,6 +991,7 @@ function renderDeliverBanner(){
          <div class="cal-top">${m}월</div>
          <div class="cal-day">${dd}</div>
          <div class="cal-sub">${DAYNAMES[dt.getDay()]}요일</div>
+         ${(d.slots||[]).length?`<div class="cal-time">${(d.slots||[]).map(s=>s.name).join('<br>')}</div>`:''}
        </div>
        <div class="db-info">
          <div class="db-head">
