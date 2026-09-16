@@ -79,29 +79,29 @@ header>*{animation-name:fadeUp;animation-duration:.6s;animation-timing-function:
 .deliver-banner .db-t{font-size:.86rem;font-weight:700;color:var(--sage);margin-bottom:11px;
   display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 /* 날짜 카드 */
-.db-day{position:relative;display:flex;gap:11px;background:#fff;border:1px solid #DCE8D6;
+.db-day{position:relative;display:flex;gap:12px;background:#fff;border:1px solid #DCE8D6;
   border-radius:13px;padding:12px;margin-bottom:9px;align-items:center}
 .db-day.urgent{border-color:#EBCDC4}
 .db-day.over{opacity:.55}
-.db-badge{position:absolute;top:-8px;right:12px;background:var(--hot);color:#fff;
-  font-size:.66rem;font-weight:800;border-radius:999px;padding:3px 10px;letter-spacing:.02em}
-.db-badge.over{background:#9A8F7E}
-/* 달력 조각 */
-.db-cal{flex:none;width:76px;border:1.5px solid var(--line);border-radius:11px;overflow:hidden;
-  text-align:center;background:#fff}
-.cal-top{background:var(--sage);color:#fff;font-size:.62rem;font-weight:700;padding:3px 0}
-.db-day.urgent .cal-top{background:var(--hot)}
-.db-day.over .cal-top{background:#9A8F7E}
-.cal-day{font-size:1.45rem;font-weight:800;color:var(--brew-deep);line-height:1.1;padding-top:4px}
-.cal-sub{font-size:.66rem;color:var(--mocha);padding-bottom:6px}
+/* 배달일 달력 (주인공) */
+.db-cal{flex:none;width:78px;border-radius:12px;overflow:hidden;text-align:center;
+  background:var(--sage);color:#fff;padding-bottom:7px}
+.db-day.urgent .db-cal{background:var(--sage)}
+.db-day.over .db-cal{background:#9A8F7E}
+.cal-top{font-size:.66rem;font-weight:700;opacity:.92;padding:4px 0 1px}
+.cal-day{font-size:1.85rem;font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.cal-sub{font-size:.7rem;font-weight:600;opacity:.95;margin-top:1px}
 /* 오른쪽 정보 */
 .db-info{flex:1;min-width:0}
-.db-date{font-size:.98rem;font-weight:700;color:var(--brew-deep)}
-.db-left{font-size:.73rem;font-weight:700;color:var(--sage);margin-top:2px}
-.db-day.urgent .db-left{color:var(--hot)}
-.db-day.over .db-left{color:var(--mocha)}
+.db-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.db-date{font-size:1rem;font-weight:700;color:var(--brew-deep);white-space:nowrap}
+.db-dl{font-size:.72rem;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap;flex:none;
+  background:var(--sage-soft);color:var(--sage);border:1px solid #DCE8D6}
+.db-dl.urgent{background:var(--hot-soft);color:var(--hot);border-color:#EEDAD3}
+.db-dl.over{background:#F0EBE2;color:var(--mocha);border-color:var(--line)}
+.db-dlsub{font-size:.68rem;color:var(--mocha);margin-top:3px}
 /* 시간대별 진행바 */
-.db-bars{margin-top:8px;display:flex;flex-direction:column;gap:7px}
+.db-bars{margin-top:9px;display:flex;flex-direction:column;gap:7px}
 .db-slotbar.full{opacity:.5}
 .sb-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.78rem;color:var(--brew-deep)}
 .sb-name{font-weight:500}
@@ -968,9 +968,8 @@ function renderDeliverBanner(){
     const dl=dayDeadline(d);
     const ms=dl-new Date();
     const left=fmtLeft(ms);
-    const urgent=!cl&&ms<=24*36e5;           // 24시간 이내 = 임박
+    const urgent=!cl&&ms<=24*36e5;
     const tone=cl?'over':(urgent?'urgent':'ok');
-    // 시간대별 진행바
     const bars=(d.slots||[]).map(s=>{
       const used=slotUsed[d.date+'|'+s.name]||0;
       const lf=Math.max(0,s.cap-used);
@@ -986,16 +985,17 @@ function renderDeliverBanner(){
       </div>`;
     }).join('');
     html+=`<div class="db-day ${tone}">
-       ${urgent?'<span class="db-badge">마감 임박</span>':''}
-       ${cl?'<span class="db-badge over">마감</span>':''}
        <div class="db-cal">
-         <div class="cal-top">${dl.getMonth()+1}월 마감</div>
-         <div class="cal-day">${dl.getDate()}</div>
-         <div class="cal-sub">${DAYNAMES[dl.getDay()]} ${pad(dl.getHours())}:${pad(dl.getMinutes())}</div>
+         <div class="cal-top">${m}월</div>
+         <div class="cal-day">${dd}</div>
+         <div class="cal-sub">${DAYNAMES[dt.getDay()]}요일</div>
        </div>
        <div class="db-info">
-         <div class="db-date">${icon} ${m}/${dd}(${DAYNAMES[dt.getDay()]}) ${modeWord()}</div>
-         <div class="db-left">${cl?'⛔ 주문이 마감되었습니다':`${urgent?'⏰':'🗓'} ${left}`}</div>
+         <div class="db-head">
+           <span class="db-date">${icon} ${modeWord()} 예정</span>
+           <span class="db-dl ${tone}">${cl?'⛔ 주문 마감':`⏰ ${left}`}</span>
+         </div>
+         <div class="db-dlsub">${cl?'':`주문 마감 ${dl.getMonth()+1}/${dl.getDate()}(${DAYNAMES[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())}`}</div>
          <div class="db-bars">${bars}</div>
        </div>
      </div>`;

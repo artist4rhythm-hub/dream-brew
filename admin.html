@@ -158,6 +158,39 @@ input:focus,select:focus{outline:none;border-color:var(--dream)}
 
 .hint{font-size:.76rem;color:var(--mocha)}
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+/* 관리자 상단 수령 일정 배너 (주문 페이지와 동일) */
+.admin-banner{max-width:1100px;margin:14px auto 0;padding:0 20px}
+.ab-box{background:var(--sage-soft);border:1px solid #DCE8D6;border-radius:16px;padding:13px 14px 11px}
+.ab-t{font-size:.84rem;font-weight:700;color:var(--sage);margin-bottom:10px}
+.ab-day{position:relative;display:flex;gap:12px;background:#fff;border:1px solid #DCE8D6;
+  border-radius:13px;padding:11px;margin-bottom:8px;align-items:center}
+.ab-day:last-child{margin-bottom:0}
+.ab-day.urgent{border-color:#EBCDC4}
+.ab-day.over{opacity:.55}
+.ab-cal{flex:none;width:72px;border-radius:12px;overflow:hidden;text-align:center;
+  background:var(--sage);color:#fff;padding-bottom:6px}
+.ab-day.over .ab-cal{background:#9A8F7E}
+.ab-cal .t{font-size:.62rem;font-weight:700;opacity:.92;padding:4px 0 1px}
+.ab-cal .d{font-size:1.6rem;font-weight:800;line-height:1.05}
+.ab-cal .s{font-size:.66rem;font-weight:600;opacity:.95}
+.ab-info{flex:1;min-width:0}
+.ab-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ab-date{font-size:.94rem;font-weight:700;color:var(--brew-deep);white-space:nowrap}
+.ab-dl{font-size:.7rem;font-weight:800;border-radius:999px;padding:3px 9px;white-space:nowrap;flex:none;
+  background:var(--sage-soft);color:var(--sage);border:1px solid #DCE8D6}
+.ab-dl.urgent{background:var(--hot-soft);color:var(--hot);border-color:#EEDAD3}
+.ab-dl.over{background:#F0EBE2;color:var(--mocha);border-color:var(--line)}
+.ab-dlsub{font-size:.66rem;color:var(--mocha);margin-top:2px}
+.ab-bars{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.ab-bar.full{opacity:.5}
+.ab-bt{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.76rem;color:var(--brew-deep)}
+.ab-bt .c{color:var(--mocha);white-space:nowrap}
+.ab-bt .c b{color:var(--sage);font-weight:700}
+.ab-track{height:6px;background:#EFE7D8;border-radius:999px;margin-top:3px;overflow:hidden}
+.ab-fill{height:100%;background:var(--sage);border-radius:999px}
+.ab-fill.warn{background:var(--gold)}
+.ab-fill.done{background:#C9BBA6}
+@media(max-width:520px){.admin-banner{padding:0 8px}}
 /* 수령 날짜 블록 */
 .take-chip{display:inline-block;font-size:.72rem;font-weight:700;background:var(--sage-soft);
   color:var(--sage);border:1px solid #DCE8D6;border-radius:6px;padding:2px 8px;margin-left:6px}
@@ -418,6 +451,7 @@ table.pt tr.total td{background:#faf5e6;color:#B08434;font-weight:700;border-top
     </div>
   </div>
 
+  <div class="admin-banner" id="adminBanner" style="display:none"></div>
   <nav class="tabs" id="tabBar" style="display:none">
     <button class="tab on" data-p="p-orders">📋 주문 취합</button>
     <button class="tab" data-p="p-make">☕ 제조 준비</button>
@@ -977,6 +1011,7 @@ function enterApp(acc){
   document.getElementById('appHeader').style.display='flex';
   document.getElementById('tabBar').style.display='flex';
   document.getElementById('appMain').style.display='block';
+  document.getElementById('adminBanner').style.display='block';
   document.body.classList.toggle('role-super',acc.role==='super');
   document.getElementById('whoAmI').innerHTML=
     `${acc.name} 선생님 <span class="role-badge ${acc.role==='super'?'super':'op'}">${acc.role==='super'?'👑 수퍼 관리자':'🛠 운영자'}</span>`;
@@ -989,6 +1024,7 @@ function logout(){
   document.getElementById('appHeader').style.display='none';
   document.getElementById('tabBar').style.display='none';
   document.getElementById('appMain').style.display='none';
+  document.getElementById('adminBanner').style.display='none';
   document.body.classList.remove('role-super');
   document.getElementById('gateId').value='';
   document.getElementById('gatePw').value='';
@@ -1020,6 +1056,7 @@ async function loadPlans(){
   }catch(e){ console.error(e); }
   fillWeekSelect();
   updateWeekChip();
+  renderAdminBanner();
 }
 function fillWeekSelect(){
   const sel=document.getElementById('wkSel');
@@ -1156,6 +1193,7 @@ async function saveWeekPlan(){
     await db.collection('plans').doc(week).set(data,{merge:true});
     PLANS[week]=data;
     updateWeekChip();
+    renderAdminBanner();
     setupWeeks();
     alert('이 주차 일정이 저장되었습니다. 주문 페이지에 바로 반영됩니다.');
     updateSlotUsage();
@@ -1279,6 +1317,69 @@ function effDeliver(week){
   const d=new Date(dl); d.setDate(d.getDate()+1); d.setHours(0,0,0,0);
   return d;
 }
+function fmtLeftAdmin(ms){
+  if(ms<=0) return '';
+  const d=Math.floor(ms/864e5), hh=Math.floor(ms%864e5/36e5), mm=Math.floor(ms%36e5/6e4);
+  return d>0?`${d}일 ${hh}시간 남음`:(hh>0?`${hh}시간 ${mm}분 남음`:`${mm}분 남음`);
+}
+function planDaysOf(week){
+  const p=PLANS[week]||{};
+  if(p.days&&p.days.length) return p.days;
+  if(p.deliverDate) return [{date:p.deliverDate,slots:p.slots||[]}];
+  return [];
+}
+function dayDeadlineAdmin(week,d){
+  if(d&&d.deadDate){
+    const [y,m,dd]=d.deadDate.split('-').map(Number);
+    const [hh,mi]=(d.deadTime||'23:59').split(':').map(Number);
+    return new Date(y,m-1,dd,hh,mi,0,0);
+  }
+  return effDeadline(week);
+}
+function renderAdminBanner(){
+  const box=document.getElementById('adminBanner');
+  if(!box) return;
+  const {next}=deadlinePair();
+  const week=curWeek||wk(next);
+  const days=planDaysOf(week);
+  if(!days.length){ box.style.display='none'; return; }
+  const icon=isPickup()?'🥤':'🚶';
+  const tail=SETTINGS.schedTitle||(isPickup()?'받을 날짜와 시간을 고를 수 있어요':'받을 날짜와 교시를 고를 수 있어요');
+  let html=`<div class="ab-box"><div class="ab-t">${icon} ${modeWord()} 일정 · ${tail}</div>`;
+  days.forEach(d=>{
+    const [y,m,dd]=d.date.split('-').map(Number);
+    const dt=new Date(y,m-1,dd);
+    const dl=dayDeadlineAdmin(week,d);
+    const ms=dl-new Date();
+    const cl=ms<=0;
+    const urgent=!cl&&ms<=24*36e5;
+    const tone=cl?'over':(urgent?'urgent':'ok');
+    const bars=(d.slots||[]).map(s=>{
+      const used=ORDERS.filter(o=>!o.canceled&&o.takeDate===d.date&&o.slot===s.name)
+                       .reduce((t,o)=>t+o.cups,0);
+      const lf=Math.max(0,s.cap-used);
+      const pct=s.cap>0?Math.min(100,Math.round(used/s.cap*100)):0;
+      const full=lf<=0||cl;
+      const near=!full&&lf<=Math.max(2,Math.round(s.cap*0.15));
+      return `<div class="ab-bar${full?' full':''}">
+        <div class="ab-bt"><span>${s.name}</span>
+          <span class="c">${full?(cl?'주문 마감':'정원 마감'):`<b>${lf}잔</b> / ${s.cap}잔`}</span></div>
+        <div class="ab-track"><div class="ab-fill${near?' warn':''}${full?' done':''}" style="width:${full?100:pct}%"></div></div>
+      </div>`;
+    }).join('');
+    html+=`<div class="ab-day ${tone}">
+      <div class="ab-cal"><div class="t">${m}월</div><div class="d">${dd}</div><div class="s">${DOW[dt.getDay()]}요일</div></div>
+      <div class="ab-info">
+        <div class="ab-head"><span class="ab-date">${icon} ${modeWord()} 예정</span>
+          <span class="ab-dl ${tone}">${cl?'⛔ 주문 마감':`⏰ ${fmtLeftAdmin(ms)}`}</span></div>
+        <div class="ab-dlsub">${cl?'':`주문 마감 ${dl.getMonth()+1}/${dl.getDate()}(${DOW[dl.getDay()]}) ${pad(dl.getHours())}:${pad(dl.getMinutes())}`}</div>
+        <div class="ab-bars">${bars}</div>
+      </div></div>`;
+  });
+  html+='</div>';
+  box.innerHTML=html;
+  box.style.display='block';
+}
 function updateWeekChip(){
   const {next}=deadlinePair();
   const wkey=wk(next);
@@ -1310,6 +1411,7 @@ async function setupWeeks(){
   sel.value=arr.includes(def)?def:arr[0];
   sel.onchange=()=>subscribeOrders(sel.value);
   updateWeekChip();
+  renderAdminBanner();
   subscribeOrders(sel.value);
   if(Object.keys(PLANS).length||document.getElementById('wkSel')) fillWeekSelect();
 }
@@ -1332,7 +1434,7 @@ function subscribeOrders(week){
   unsubOrders=db.collection('orders').where('week','==',week).onSnapshot(snap=>{
     ORDERS=snap.docs.map(d=>({id:d.id,...d.data()}));
     ORDERS.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
-    renderOrders(); renderMake(); renderRoute();
+    renderOrders(); renderMake(); renderRoute(); renderAdminBanner();
     if(document.getElementById('dayList')?.children.length) updateSlotUsage();
     flashLive();
   },e=>console.error(e));
